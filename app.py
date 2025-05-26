@@ -7,7 +7,7 @@ from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 import os
 from dotenv import load_dotenv
 import ssl
-
+from pymongo.server_api import ServerApi
 load_dotenv()
 
 app = Flask(__name__)
@@ -17,9 +17,7 @@ def get_mongo_client():
     try:
         client = MongoClient(
             os.getenv("MONGODB_URI"),
-            ssl=True,
-            ssl_cert_reqs=ssl.CERT_NONE,
-            serverSelectionTimeoutMS=5000
+            server_api=ServerApi('1')
         )
         client.admin.command('ping')
         return client
