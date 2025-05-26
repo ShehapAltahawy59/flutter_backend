@@ -7,7 +7,7 @@ load_dotenv()
 class User:
     # MongoDB connection
     client = MongoClient(os.getenv("MONGODB_URI"))
-    db = client['workout_planner']
+    db = client['flutter_project']
     collection = db['users']
     
     @classmethod
