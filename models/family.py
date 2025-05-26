@@ -8,7 +8,7 @@ load_dotenv()
 
 class Family:
     client = MongoClient(os.getenv("MONGODB_URI"))
-    db = client[os.getenv("MONGO_DBNAME", "workout_planner")]
+    db = client[os.getenv("MONGO_DBNAME", "flutter_project")]
     collection = db['families']
 
     @classmethod
