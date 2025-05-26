@@ -1,0 +1,7 @@
+MYSQL_HOST=maglev.proxy.rlwy.net
+MYSQL_USER=root
+MYSQL_PASSWORD=kjtNngDcdosjnqdZmdADZIxOpyiiVKWF
+MYSQL_DATABASE=railway
+MYSQL_PORT=48289
+
+MONGO_URI="mongodb+srv://root:123456LILI@lili.dj6gkxo.mongodb.net/?retryWrites=true&w=majority&appName=LILI"
