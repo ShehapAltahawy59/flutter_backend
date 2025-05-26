@@ -4,3 +4,7 @@ flask-cors
 pymongo
 python-dotenv
 gunicorn
+flask_session
+groq
+chromadb
+langchain
