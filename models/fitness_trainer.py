@@ -392,48 +392,48 @@ class FitnessAITrainer:
         # If no session loaded, create new profile
         return self.create_new_profile()
 
-    def create_new_profile(self):
+    def create_new_profile(self,data):
         """Collect user fitness information"""
         print("Let's set up your fitness profile first.\n")
 
         try:
-            self.user_profile['name'] = input("What's your name? ").strip()
-            self.user_profile['age'] = int(input("How old are you? "))
-            self.user_profile['weight'] = float(input("What's your weight (kg)? "))
-            self.user_profile['height'] = float(input("What's your height (cm)? "))
+            # self.user_profile['name'] = input("What's your name? ").strip()
+            # self.user_profile['age'] = int(input("How old are you? "))
+            # self.user_profile['weight'] = float(input("What's your weight (kg)? "))
+            # self.user_profile['height'] = float(input("What's your height (cm)? "))
 
-            print("\nFitness Goals:")
-            print("1. Weight Loss")
-            print("2. Muscle Gain")
-            print("3. General Fitness")
-            print("4. Strength Training")
-            print("5. Endurance")
-            goal_choice = input("Select your primary goal (1-5): ")
-            goals = {
-                '1': 'Weight Loss',
-                '2': 'Muscle Gain',
-                '3': 'General Fitness',
-                '4': 'Strength Training',
-                '5': 'Endurance'
-            }
-            self.user_profile['fitness_goal'] = goals.get(goal_choice, 'General Fitness')
+            # print("\nFitness Goals:")
+            # print("1. Weight Loss")
+            # print("2. Muscle Gain")
+            # print("3. General Fitness")
+            # print("4. Strength Training")
+            # print("5. Endurance")
+            # goal_choice = input("Select your primary goal (1-5): ")
+            # goals = {
+            #     '1': 'Weight Loss',
+            #     '2': 'Muscle Gain',
+            #     '3': 'General Fitness',
+            #     '4': 'Strength Training',
+            #     '5': 'Endurance'
+            # }
+            # self.user_profile['fitness_goal'] = goals.get(goal_choice, 'General Fitness')
 
-            print("\nExperience Level:")
-            print("1. Beginner")
-            print("2. Intermediate")
-            print("3. Advanced")
-            exp_choice = input("Select your experience level (1-3): ")
-            experience_levels = {
-                '1': 'Beginner',
-                '2': 'Intermediate',
-                '3': 'Advanced'
-            }
-            self.user_profile['experience'] = experience_levels.get(exp_choice, 'Beginner')
+            # print("\nExperience Level:")
+            # print("1. Beginner")
+            # print("2. Intermediate")
+            # print("3. Advanced")
+            # exp_choice = input("Select your experience level (1-3): ")
+            # experience_levels = {
+            #     '1': 'Beginner',
+            #     '2': 'Intermediate',
+            #     '3': 'Advanced'
+            # }
+            # self.user_profile['experience'] = experience_levels.get(exp_choice, 'Beginner')
 
-            self.user_profile['equipment'] = input("What equipment do you have access to? (e.g., dumbbells, gym membership, bodyweight only): ").strip()
+            # self.user_profile['equipment'] = input("What equipment do you have access to? (e.g., dumbbells, gym membership, bodyweight only): ").strip()
 
-            self.user_profile['limitations'] = input("Any injuries or physical limitations? (optional): ").strip()
-
+            # self.user_profile['limitations'] = input("Any injuries or physical limitations? (optional): ").strip()
+            self.user_profile = data
             # Calculate BMI
             height_m = self.user_profile['height'] / 100
             bmi = self.user_profile['weight'] / (height_m ** 2)
