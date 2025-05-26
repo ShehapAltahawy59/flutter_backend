@@ -6,7 +6,7 @@ import os
 from dotenv import load_dotenv
 from routes.event_routes import event_bp
 from routes.emergency_routes import emergency_bp
-
+from routes.family_routes import family_bp
 load_dotenv()
 
 app = Flask(__name__)
@@ -17,6 +17,7 @@ app.register_blueprint(workout_bp, url_prefix='/api/workouts')
 app.register_blueprint(user_bp, url_prefix='/api/users')  # Register user routes
 app.register_blueprint(event_bp,url_prefix='/api/events')
 app.register_blueprint(emergency_bp,url_prefix='/api/emergency')
+app.register_blueprint(family_bp)
 @app.route('/')
 def health_check():
     return {'status': 'healthy', 'message': 'Workout Planner API is running'}
