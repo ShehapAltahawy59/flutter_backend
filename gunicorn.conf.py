@@ -6,11 +6,12 @@ bind = "0.0.0.0:" + os.getenv("PORT", "5000")
 backlog = 2048
 
 # Worker processes
-workers = multiprocessing.cpu_count() * 2 + 1
-worker_class = 'sync'
-worker_connections = 1000
-timeout = 120
-keepalive = 2
+workers = min(multiprocessing.cpu_count() * 2 + 1, 4)  # Limit max workers to 4
+worker_class = 'gthread'
+threads = 4  # Increased threads per worker
+worker_connections = 2000
+timeout = 180  # Increased timeout
+keepalive = 5  # Increased keepalive
 
 # Logging
 accesslog = '-'
@@ -51,8 +52,24 @@ def worker_abort(worker):
     worker.log.info("Worker received SIGABRT")
 
 # Memory management
-max_requests = 1000
+max_requests = 500  # Reduced to recycle workers more frequently
 max_requests_jitter = 50
 worker_tmp_dir = '/tmp'
+
+# Graceful timeout
+graceful_timeout = 120
+
+# Preload app
+preload_app = True
+
+# Worker recycling
+max_worker_lifetime = 3600  # Restart workers after 1 hour
+max_worker_lifetime_jitter = 60  # Add some randomness to worker lifetime
+
+# Error handling
+capture_output = True
+enable_stdio_inheritance = True
+
+# Worker class settings
 worker_class = 'gthread'
-threads = 2 
+threads = 4 
