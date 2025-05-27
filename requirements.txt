@@ -10,3 +10,4 @@ chromadb
 langchain
 dotenv
 langchain-community
+sentence-transformers
