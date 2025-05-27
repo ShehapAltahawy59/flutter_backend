@@ -326,6 +326,7 @@ def chat():
             'error': str(e)
         }), 500
 
+@fitness_bp.route('/workout', methods=['POST'])
 @fitness_bp.route('/workout/generate', methods=['POST'])
 def generate_workout():
     """Generate personalized workout"""
@@ -369,9 +370,12 @@ def generate_workout():
         })
         
     except Exception as e:
+        print(f"Error generating workout: {str(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': f'Failed to generate workout: {str(e)}'
         }), 500
 
 @fitness_bp.route('/session/end', methods=['POST'])
