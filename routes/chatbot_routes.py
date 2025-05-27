@@ -43,47 +43,47 @@ def start_session():
 @fitness_bp.route('/profile', methods=['POST'])
 def create_profile():
     """Create or update user fitness profile"""
-    try:
-        if 'fitness_session_id' not in session:
-            return jsonify({'success': False, 'error': 'No active session'}), 400
-        
-        data = request.json
-        trainer = get_or_create_trainer(session['fitness_session_id'])
-        
-        # Required fields
-        required = ['name', 'age', 'weight', 'height', 'fitness_goal', 'experience']
-        if not all(field in data for field in required):
-            return jsonify({
-                'success': False,
-                'error': f'Missing required fields: {required}'
-            }), 400
-        
-        # Set up profile
-        trainer.user_profile = {
-            'name': data['name'],
-            'age': int(data['age']),
-            'weight': float(data['weight']),
-            'height': float(data['height']),
-            'fitness_goal': data['fitness_goal'],
-            'experience': data['experience'],
-            'equipment': data.get('equipment', ''),
-            'limitations': data.get('limitations', ''),
-            'bmi': round(float(data['weight']) / ((float(data['height'])/100)**2, 1))
-        }
-        
-        # Initialize memory system
-        trainer.memory_manager = FitnessMemoryManager(trainer.client, trainer.user_profile)
-        
-        return jsonify({
-            'success': True,
-            'profile': trainer.user_profile
-        })
-        
-    except Exception as e:
+    
+    if 'fitness_session_id' not in session:
+        return jsonify({'success': False, 'error': 'No active session'}), 400
+    
+    data = request.json
+    trainer = get_or_create_trainer(session['fitness_session_id'])
+    
+    # Required fields
+    required = ['name', 'age', 'weight', 'height', 'fitness_goal', 'experience']
+    if not all(field in data for field in required):
         return jsonify({
             'success': False,
-            'error': str(e)
-        }), 500
+            'error': f'Missing required fields: {required}'
+        }), 400
+    
+    # Set up profile
+    trainer.user_profile = {
+        'name': data['name'],
+        'age': int(data['age']),
+        'weight': float(data['weight']),
+        'height': float(data['height']),
+        'fitness_goal': data['fitness_goal'],
+        'experience': data['experience'],
+        'equipment': data.get('equipment', ''),
+        'limitations': data.get('limitations', ''),
+        'bmi': round(float(data['weight']) / ((float(data['height'])/100)**2, 1))
+    }
+    
+    # Initialize memory system
+    trainer.memory_manager = FitnessMemoryManager(trainer.client, trainer.user_profile)
+    
+    return jsonify({
+        'success': True,
+        'profile': trainer.user_profile
+    })
+        
+    # except Exception as e:
+    #     return jsonify({
+    #         'success': False,
+    #         'error': str(e)
+    #     }), 500
 
 @fitness_bp.route('/chat', methods=['POST'])
 def chat():
