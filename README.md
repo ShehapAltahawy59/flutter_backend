@@ -54,6 +54,80 @@ gunicorn -c gunicorn.conf.py app:app
 
 The server will be available at `http://localhost:5000` by default.
 
+## Running Tests
+
+### Standard Tests
+
+1. Run all tests:
+```bash
+python -m pytest
+```
+
+2. Run specific test files:
+```bash
+python -m pytest tests/test_fitness_client.py
+python -m pytest tests/test_chatbot_routes.py
+```
+
+### Emergency Tests
+
+The emergency tests verify critical functionality and error handling:
+
+1. Run emergency tests:
+```bash
+python run_emergency_test.py
+```
+
+This test suite:
+- Verifies server startup and shutdown
+- Tests error handling for invalid API keys
+- Checks memory manager initialization
+- Validates session management
+- Tests server recovery after errors
+
+### Event Tests
+
+The event tests simulate real-world usage scenarios:
+
+1. Run event tests:
+```bash
+python run_event_test.py
+```
+
+This test suite:
+- Simulates user sessions
+- Tests profile creation and updates
+- Verifies chat functionality
+- Tests workout generation
+- Validates memory persistence
+- Checks concurrent user handling
+
+### Test Output
+
+Both test suites provide detailed output:
+- Test progress and results
+- Error messages and stack traces
+- Performance metrics
+- Memory usage statistics
+
+Example output:
+```
+=== Running Emergency Tests ===
+[✓] Server startup
+[✓] API key validation
+[✓] Memory manager initialization
+[✓] Session management
+[✓] Error recovery
+
+=== Running Event Tests ===
+[✓] User session simulation
+[✓] Profile management
+[✓] Chat functionality
+[✓] Workout generation
+[✓] Memory persistence
+[✓] Concurrent users
+```
+
 ## Using the FitnessClient
 
 The `FitnessClient` provides a Python interface to interact with the Fitness AI backend.
@@ -118,35 +192,6 @@ client.end_session()
 - `chat(message)`: Send message to fitness AI
 - `generate_workout(workout_type, duration, intensity)`: Generate personalized workout
 - `end_session()`: End current session
-
-## Running Tests
-
-1. Install test dependencies:
-```bash
-pip install -r requirements-test.txt
-```
-
-2. Run all tests:
-```bash
-python -m pytest
-```
-
-3. Run specific test files:
-```bash
-python -m pytest tests/test_fitness_client.py
-python -m pytest tests/test_chatbot_routes.py
-```
-
-4. Run tests with coverage:
-```bash
-python -m pytest --cov=.
-```
-
-### Test Files
-
-- `tests/test_fitness_client.py`: Tests for the FitnessClient class
-- `tests/test_chatbot_routes.py`: Tests for the Flask routes
-- `tests/test_memory_manager.py`: Tests for the memory management system
 
 ## Error Handling
 
