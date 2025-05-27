@@ -13,6 +13,34 @@ from datetime import datetime
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Global variables for preloaded models
+_embeddings = None
+_vector_store = None
+
+def get_preloaded_models():
+    """Get or initialize preloaded models"""
+    global _embeddings, _vector_store
+    
+    if _embeddings is None or _vector_store is None:
+        temp_dir = tempfile.gettempdir()
+        model_cache_dir = os.path.join(temp_dir, "fitness_model_cache")
+        chroma_db_dir = os.path.join(temp_dir, "fitness_chroma_db")
+        
+        _embeddings = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2",
+            model_kwargs={'device': 'cpu'},
+            encode_kwargs={'normalize_embeddings': True},
+            cache_folder=model_cache_dir
+        )
+        
+        _vector_store = Chroma(
+            collection_name="fitness_memories",
+            embedding_function=_embeddings,
+            persist_directory=chroma_db_dir
+        )
+    
+    return _embeddings, _vector_store
+
 class FitnessMemoryManager:
     def __init__(self, client, user_profile):
         """Initialize memory manager with optimized settings"""
@@ -22,41 +50,9 @@ class FitnessMemoryManager:
         self.client = client
         self.user_profile = user_profile
         
-        # Create cache directories in user's temp directory
-        self.temp_dir = tempfile.gettempdir()
-        logger.info(f"Using temp directory: {self.temp_dir}")
-        
-        self.model_cache_dir = os.path.join(self.temp_dir, "fitness_model_cache")
-        self.chroma_db_dir = os.path.join(self.temp_dir, "fitness_chroma_db")
-        
         try:
-            # Create directories if they don't exist
-            logger.info(f"Creating model cache directory: {self.model_cache_dir}")
-            os.makedirs(self.model_cache_dir, exist_ok=True)
-            logger.info(f"Creating chroma db directory: {self.chroma_db_dir}")
-            os.makedirs(self.chroma_db_dir, exist_ok=True)
-            
-            # Force garbage collection before loading model
-            gc.collect()
-            
-            # Use a lighter model and optimize memory usage
-            logger.info("Initializing HuggingFace embeddings...")
-            self.embeddings = HuggingFaceEmbeddings(
-                model_name="sentence-transformers/all-MiniLM-L6-v2",
-                model_kwargs={'device': 'cpu'},
-                encode_kwargs={'normalize_embeddings': True},
-                cache_folder=self.model_cache_dir
-            )
-            logger.info("HuggingFace embeddings initialized successfully")
-            
-            # Initialize vector store with optimized settings
-            logger.info("Initializing Chroma vector store...")
-            self.vector_store = Chroma(
-                collection_name="fitness_memories",
-                embedding_function=self.embeddings,
-                persist_directory=self.chroma_db_dir
-            )
-            logger.info("Chroma vector store initialized successfully")
+            # Get preloaded models
+            self.embeddings, self.vector_store = get_preloaded_models()
             
             # Initialize conversation memory with smaller buffer
             logger.info("Initializing conversation memory...")

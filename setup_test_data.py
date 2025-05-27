@@ -14,7 +14,7 @@ def setup_test_data():
     base_url = "https://flutter-backend-dcqs.onrender.com"
     
     # Create test IDs (24-character hex strings)
-    test_user_id = "6836243c2ae789f8eb268aed"  # Valid 24-character hex string
+    test_user_id = "68362e0d970aa3df29b02f5a"  # Valid 24-character hex string
     test_family_id = "507f1f77bcf86cd799439012"  # Valid 24-character hex string
     
     # Create test user data
