@@ -1595,3 +1595,20 @@ bson.errors.InvalidId: 'test_user_id' is not a valid ObjectId, it must be a 12-b
 2025-05-27 20:46:27,543 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
  * Running on http://127.0.0.1:5000
 2025-05-27 20:46:27,544 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-05-27 21:51:58,129 - app - INFO - Initializing model loader and pre-downloading models...
+2025-05-27 21:51:58,152 - utils.model_loader - INFO - Initializing ModelLoader...
+2025-05-27 21:51:58,686 - utils.model_loader - INFO - Pre-downloading ChromaDB embedding model...
+2025-05-27 21:51:58,688 - utils.model_loader - INFO - Downloading essential model files for sentence-transformers/all-MiniLM-L6-v2
+2025-05-27 21:51:59,596 - utils.model_loader - INFO - Essential model files download complete
+2025-05-27 21:51:59,597 - utils.model_loader - INFO - ModelLoader initialization complete
+2025-05-27 21:51:59,597 - app - INFO - Model initialization complete
+2025-05-27 21:51:59,842 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-05-27 21:51:59,842 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-05-27 21:58:11,766 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 21:58:11] "[32mPOST /api/events HTTP/1.1[0m" 308 -
+2025-05-27 21:58:14,585 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 21:58:14] "[35m[1mPOST /api/events/ HTTP/1.1[0m" 201 -
+2025-05-27 21:58:17,338 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 21:58:17] "GET /api/events/68360b4624efd1fb39fe0ccb HTTP/1.1" 200 -
+2025-05-27 21:58:19,532 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 21:58:19] "PUT /api/events/68360b4624efd1fb39fe0ccb HTTP/1.1" 200 -
+2025-05-27 21:58:21,675 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 21:58:21] "POST /api/events/68360b4624efd1fb39fe0ccb/join HTTP/1.1" 200 -
+2025-05-27 21:58:23,827 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 21:58:23] "GET /api/events/family/68360b413c1fc5d70fc2ed77 HTTP/1.1" 200 -
+2025-05-27 21:58:25,967 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 21:58:25] "POST /api/events/68360b4624efd1fb39fe0ccb/leave HTTP/1.1" 200 -
