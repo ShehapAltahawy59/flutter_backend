@@ -1,42 +1,39 @@
-from pymongo import MongoClient
 from datetime import datetime
 from bson import ObjectId
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
+from utils.db import DatabaseConnection
 
 class Event:
-    client = MongoClient(os.getenv("MONGODB_URI"))
-    db = client[os.getenv("MONGO_DBNAME", "flutter_project")]
-    collection = db['events']
-
     @classmethod
     def create_event(cls, event_data):
+        db = DatabaseConnection.get_instance()
         event_data['created_at'] = datetime.utcnow()
         event_data['status'] = 'upcoming'
-        return cls.collection.insert_one(event_data)
+        return db.get_events_collection().insert_one(event_data)
 
     @classmethod
     def get_event(cls, event_id):
-        return cls.collection.find_one({"_id": ObjectId(event_id)})
+        db = DatabaseConnection.get_instance()
+        return db.get_events_collection().find_one({"_id": ObjectId(event_id)})
 
     @classmethod
     def get_all_events(cls, query=None):
+        db = DatabaseConnection.get_instance()
         if query is None:
             query = {}
-        return list(cls.collection.find(query).sort("datetime", 1))
+        return list(db.get_events_collection().find(query).sort("datetime", 1))
 
     @classmethod
     def get_family_events(cls, family_id):
-        return list(cls.collection.find({
+        db = DatabaseConnection.get_instance()
+        return list(db.get_events_collection().find({
             "family_id": ObjectId(family_id),
             "status": "upcoming"
         }).sort("datetime", 1))
 
     @classmethod
     def update_event(cls, event_id, update_data):
-        result = cls.collection.update_one(
+        db = DatabaseConnection.get_instance()
+        result = db.get_events_collection().update_one(
             {"_id": ObjectId(event_id)},
             {"$set": update_data}
         )
@@ -44,12 +41,14 @@ class Event:
 
     @classmethod
     def update_event_status(cls, event_id, status):
-        return cls.collection.update_one(
+        db = DatabaseConnection.get_instance()
+        return db.get_events_collection().update_one(
             {"_id": ObjectId(event_id)},
             {"$set": {"status": status}}
         )
 
     @classmethod
     def delete_event(cls, event_id):
-        result = cls.collection.delete_one({"_id": ObjectId(event_id)})
+        db = DatabaseConnection.get_instance()
+        result = db.get_events_collection().delete_one({"_id": ObjectId(event_id)})
         return result.deleted_count > 0

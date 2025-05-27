@@ -1,18 +1,9 @@
-from pymongo import MongoClient
-from dotenv import load_dotenv
-import os
 from datetime import datetime
 from typing import List, Dict, Optional
 from bson import ObjectId
-
-load_dotenv()
+from utils.db import DatabaseConnection
 
 class User:
-    # MongoDB connection
-    client = MongoClient(os.getenv("MONGODB_URI"))
-    db = client['flutter_project']
-    collection = db['users']
-    
     def __init__(self, data: Dict):
         self._id = data.get('_id', ObjectId())
         self.email = data['email']
@@ -57,15 +48,18 @@ class User:
 
     @classmethod
     def find_by_id(cls, user_id):
-        return cls.collection.find_one({"_id": user_id})
+        db = DatabaseConnection.get_instance()
+        return db.get_users_collection().find_one({"_id": user_id})
     
     @classmethod
     def create(cls, user_data):
-        return cls.collection.insert_one(user_data)
+        db = DatabaseConnection.get_instance()
+        return db.get_users_collection().insert_one(user_data)
     
     @classmethod
     def update_fitness_goals(cls, user_id, goals):
-        return cls.collection.update_one(
+        db = DatabaseConnection.get_instance()
+        return db.get_users_collection().update_one(
             {"_id": user_id},
             {"$set": {"fitness.goals": goals}}
         )
