@@ -225,6 +225,22 @@ For deployment on Render:
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
+## Emergency System Check
+
+To check if your system is working properly, run:
+```bash
+python run_emergency_test.py
+```
+
+This will test if:
+- Your server can start up
+- Your API key is working
+- The memory system is working
+- Error handling is working
+- Everything is properly connected
+
+If you see any errors, check your API key and server configuration.
+
 ## Test Files
 
 The project includes two main test files:
