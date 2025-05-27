@@ -9,32 +9,57 @@ from routes.family_routes import family_bp
 from routes.chatbot_routes import fitness_bp  # Import fitness trainer blueprint
 import os
 from dotenv import load_dotenv
+from utils.model_loader import ModelLoader
+from utils.db import DatabaseConnection
+import logging
+from config import API_CONFIG, LOGGING
 
 load_dotenv()
 
-app = Flask(__name__)
+# Configure logging
+logging.basicConfig(
+    level=LOGGING['level'],
+    format=LOGGING['format'],
+    filename=LOGGING['file']
+)
+logger = logging.getLogger(__name__)
 
-# Configuration for sessions (needed for fitness trainer)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', os.urandom(24))
-app.config['SESSION_TYPE'] = 'filesystem'
-app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hour
-app.config['SESSION_FILE_DIR'] = os.path.join(os.getcwd(), 'flask_session')
+def create_app():
+    app = Flask(__name__)
+    
+    # Initialize database connection
+    logger.info("Initializing database connection...")
+    db = DatabaseConnection.get_instance()
+    
+    # Initialize models
+    logger.info("Initializing ML models...")
+    model_loader = ModelLoader.get_instance()
+    if not model_loader.initialize_models():
+        logger.error("Failed to initialize models!")
+    
+    # Configuration for sessions (needed for fitness trainer)
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', os.urandom(24))
+    app.config['SESSION_TYPE'] = 'filesystem'
+    app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hour
+    app.config['SESSION_FILE_DIR'] = os.path.join(os.getcwd(), 'flask_session')
 
-# Initialize CORS and Session
-CORS(app, supports_credentials=True)
-Session(app)
+    # Initialize CORS and Session
+    CORS(app, supports_credentials=True)
+    Session(app)
 
-# Create required directories
-os.makedirs('flask_session', exist_ok=True)
-os.makedirs('fitness_data', exist_ok=True)
+    # Create required directories
+    os.makedirs('flask_session', exist_ok=True)
+    os.makedirs('fitness_data', exist_ok=True)
 
-# Register blueprints
-app.register_blueprint(workout_bp, url_prefix='/api/workouts')
-app.register_blueprint(user_bp, url_prefix='/api/users')  # Register user routes
-app.register_blueprint(event_bp, url_prefix='/api/events')
-app.register_blueprint(emergency_bp, url_prefix='/api/emergency')
-app.register_blueprint(family_bp)
-app.register_blueprint(fitness_bp, url_prefix='/api/fitness')  # Register fitness trainer routes
+    # Register blueprints
+    app.register_blueprint(workout_bp, url_prefix='/api/workouts')
+    app.register_blueprint(user_bp, url_prefix='/api/users')  # Register user routes
+    app.register_blueprint(event_bp, url_prefix='/api/events')
+    app.register_blueprint(emergency_bp, url_prefix='/api/emergency')
+    app.register_blueprint(family_bp)
+    app.register_blueprint(fitness_bp, url_prefix='/api/fitness')  # Register fitness trainer routes
+    
+    return app
 
 @app.route('/')
 def health_check():
@@ -110,4 +135,9 @@ if __name__ == '__main__':
     print("   - Family: http://localhost:5000/api/family")
     print("   - Fitness Trainer AI: http://localhost:5000/api/fitness")
     
-    app.run(debug=True)
+    app = create_app()
+    app.run(
+        host=API_CONFIG['host'],
+        port=API_CONFIG['port'],
+        debug=API_CONFIG['debug']
+    )
