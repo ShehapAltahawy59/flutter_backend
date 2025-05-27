@@ -35,10 +35,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-4. Create a `.env` file in the root directory:
-```env
-GROQ_API_KEY=your_groq_api_key_here
-```
+
 
 ## Running the Server
 
@@ -153,16 +150,60 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Emergency System Check
 
-To check if your system is working properly, run:
+To verify that your emergency system is working properly, run:
 ```bash
 python run_emergency_test.py
 ```
 
-This will test if:
-- Your server can start up
-- Your API key is working
-- The memory system is working
-- Error handling is working
-- Everything is properly connected
+This test will:
+1. Create a test SOS alert with location data
+2. Check if the alert was created successfully
+3. Get active alerts for the test family
+4. Acknowledge the alert
+5. Get alert history
+6. Resolve the alert
+7. Verify the final alert status
 
-If you see any errors, check your API key and server configuration.
+The test uses a test user and family ID to simulate emergency situations. If any step fails, you'll see detailed error messages to help diagnose the issue.
+
+Make sure your MongoDB connection is working and your server is running before running this test.
+
+## Event System Check
+
+To verify that your event system is working properly, run:
+```bash
+python run_event_test.py
+```
+
+This test will:
+1. Create a test family event with location and timing details
+2. Get the event details to verify creation
+3. Update the event with new information
+4. Join the event as a test user
+5. Get all family events within a date range
+6. Leave the event
+7. Verify all changes were successful
+
+The test uses test data to simulate real event management scenarios. If any step fails, you'll see detailed error messages to help diagnose the issue.
+
+Make sure your MongoDB connection is working and your server is running before running this test.
+
+## Fitness Client Check
+
+To verify that your fitness client is working properly, run:
+```bash
+python -m pytest tests/test_fitness_client.py
+```
+
+This test will:
+1. Test client initialization and session management
+2. Create and update user profiles
+3. Test profile status checks
+4. Verify chat functionality with the AI trainer
+5. Test workout generation
+6. Check memory initialization and persistence
+7. Verify error handling and retries
+
+The test uses a test API key and simulates real user interactions. If any step fails, you'll see detailed error messages to help diagnose the issue.
+
+Make sure your server is running and your GROQ API key is properly configured before running this test.
