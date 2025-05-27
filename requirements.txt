@@ -16,3 +16,6 @@ redis
 python-jose
 bcrypt
 requests
+groq
+chromadb
+langchain-community
