@@ -70,34 +70,41 @@ class FitnessAITrainer:
     def __init__(self, api_key):
         """Initialize the Groq client with API key and LangChain memory"""
         if not hasattr(self, 'initialized'):
+            print("\n=== Initializing FitnessAITrainer ===")
             # Force garbage collection before initialization
             gc.collect()
             
             # Validate API key
             if not api_key or not isinstance(api_key, str) or len(api_key.strip()) == 0:
+                print("Invalid API key provided")
                 raise ValueError("Invalid API key provided")
             
             try:
+                print("Initializing Groq client...")
                 # Initialize Groq client with API key
                 self.client = Groq(api_key=api_key.strip())
                 
+                print("Testing API key with simple request...")
                 # Test the API key with a simple request
                 self.client.chat.completions.create(
                     messages=[{"role": "user", "content": "test"}],
                     model="llama3-70b-8192",
                     max_tokens=5
                 )
+                print("API key test successful")
                 
                 # If we get here, the API key is valid
+                print("Setting up trainer instance...")
                 self.user_profile = FitnessAITrainer._profile or {}
                 self.memory_manager = None
                 self.session_start_time = datetime.now()
                 self.loaded_from_save = False
                 self.initialized = True
-                print(f"Debug - Initialized FitnessAITrainer with profile: {self.user_profile}")
+                print(f"Trainer initialized successfully with profile: {self.user_profile}")
                 
             except Exception as e:
                 error_msg = str(e)
+                print(f"Error during initialization: {error_msg}")
                 if "invalid_api_key" in error_msg.lower():
                     raise ValueError("Invalid Groq API key. Please check your API key in the .env file.")
                 elif "authentication" in error_msg.lower():
@@ -315,9 +322,10 @@ Remember: You have access to both recent conversation history and semantically r
     def get_ai_response(self, user_message):
         """Get response from Groq AI using LangChain memory"""
         try:
+            print("\n=== Getting AI Response ===")
             # Debug logging
-            print(f"\nDebug - User Profile in get_ai_response: {self.user_profile}")
-            print(f"Debug - Class Profile: {FitnessAITrainer._profile}")
+            print(f"User Profile: {self.user_profile}")
+            print(f"Class Profile: {FitnessAITrainer._profile}")
             
             # Try to recover profile from class variable if instance profile is empty
             if not self.user_profile and FitnessAITrainer._profile:
@@ -339,12 +347,17 @@ Remember: You have access to both recent conversation history and semantically r
             if not hasattr(self, 'memory_manager') or self.memory_manager is None:
                 print("Initializing memory manager...")
                 self.memory_manager = FitnessMemoryManager(self.client, self.user_profile)
+                print("Memory manager initialized")
             
             # Get relevant context from memory
+            print("Getting relevant context from memory...")
             context = self.memory_manager.get_relevant_context(user_message)
+            print("Context retrieved successfully")
 
             # Create system prompt with context
+            print("Creating system prompt...")
             system_prompt = self.create_system_prompt(context)
+            print("System prompt created")
 
             # Prepare messages for API call
             messages = [
@@ -353,6 +366,7 @@ Remember: You have access to both recent conversation history and semantically r
             ]
 
             # Get response from Groq
+            print("Sending request to Groq...")
             response = self.client.chat.completions.create(
                 messages=messages,
                 model="llama3-70b-8192",
@@ -361,11 +375,14 @@ Remember: You have access to both recent conversation history and semantically r
                 top_p=1,
                 stream=False
             )
+            print("Response received from Groq")
 
             ai_response = response.choices[0].message.content
 
             # Add conversation turn to memory
+            print("Adding conversation to memory...")
             self.memory_manager.add_conversation_turn(user_message, ai_response)
+            print("Conversation added to memory")
 
             return ai_response
 

@@ -14,24 +14,63 @@ trainer = None
 def get_or_create_trainer(session_id: str) -> FitnessAITrainer:
     """Get existing trainer or create new one for session"""
     try:
-        if session_id not in active_trainers:
-            # Get API key from environment
-            api_key = os.getenv("GROQ_API_KEY")
-            if not api_key:
-                raise ValueError("GROQ_API_KEY not found in environment variables")
-            
-            print(f"Creating new trainer instance for session {session_id}")
-            active_trainers[session_id] = FitnessAITrainer(api_key=api_key)
-            print("Trainer instance created successfully")
+        print(f"\n=== Getting/Creating Trainer for Session {session_id} ===")
         
-        return active_trainers[session_id]
+        # Check if we have a valid API key
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            print("GROQ_API_KEY not found in environment variables")
+            raise ValueError("GROQ_API_KEY not found in environment variables")
+        
+        # Check if trainer exists for this session
+        if session_id in active_trainers:
+            trainer = active_trainers[session_id]
+            print(f"Found existing trainer for session {session_id}")
+            
+            # Verify trainer is still valid
+            if not hasattr(trainer, 'initialized') or not trainer.initialized:
+                print("Existing trainer not properly initialized, creating new instance")
+                del active_trainers[session_id]
+            elif not hasattr(trainer, 'memory_manager') or not trainer.memory_manager:
+                print("Existing trainer missing memory manager, creating new instance")
+                del active_trainers[session_id]
+            elif not trainer.memory_manager.is_initialized():
+                print("Existing trainer's memory manager not initialized, creating new instance")
+                del active_trainers[session_id]
+            else:
+                print("Existing trainer is valid")
+                return trainer
+        
+        # Create new trainer instance
+        print(f"Creating new trainer instance for session {session_id}")
+        trainer = FitnessAITrainer(api_key=api_key)
+        
+        # Verify trainer was created successfully
+        if not hasattr(trainer, 'initialized') or not trainer.initialized:
+            print("Failed to initialize trainer")
+            raise ValueError("Failed to initialize trainer")
+        
+        # Initialize memory manager if needed
+        if not hasattr(trainer, 'memory_manager') or not trainer.memory_manager:
+            print("Initializing memory manager...")
+            trainer.memory_manager = FitnessMemoryManager(trainer.client, trainer.user_profile)
+            print("Memory manager initialized")
+        
+        # Verify memory manager initialization
+        if not trainer.memory_manager.is_initialized():
+            print("Failed to initialize memory manager")
+            raise ValueError("Failed to initialize memory manager")
+        
+        # Store trainer in active trainers
+        active_trainers[session_id] = trainer
+        print("Trainer instance created and stored successfully")
+        
+        return trainer
+        
     except Exception as e:
         print(f"Error in get_or_create_trainer: {str(e)}")
-        import traceback
-    if session_id not in active_trainers:
-        # Initialize with your Groq API key
-        active_trainers[session_id] = FitnessAITrainer(api_key=os.getenv("GROQ_API_KEY"))
-    return active_trainers[session_id]
+        print(f"Traceback: {traceback.format_exc()}")
+        raise
 
 @fitness_bp.route('/session/start', methods=['POST'])
 def start_session():
@@ -210,8 +249,11 @@ def create_profile():
 def profile_status():
     """Check the status of the current profile and memory manager"""
     try:
+        print("\n=== Profile Status Check ===")
+        
         # Check if we have a valid session
         if not session.get('fitness_session_id'):
+            print("No active session found")
             return jsonify({
                 'status': 'error',
                 'message': 'No active session found',
@@ -227,24 +269,29 @@ def profile_status():
             }), 404
 
         # Get the trainer instance
-        trainer = get_or_create_trainer(session['fitness_session_id'])
-        if not trainer:
+        try:
+            trainer = get_or_create_trainer(session['fitness_session_id'])
+            print(f"Trainer instance retrieved for session {session['fitness_session_id']}")
+        except Exception as e:
+            print(f"Error getting trainer instance: {str(e)}")
             return jsonify({
                 'status': 'error',
-                'message': 'Trainer not initialized',
+                'message': f'Failed to get trainer instance: {str(e)}',
                 'data': {
                     'profile_exists': False,
                     'memory_initialized': False,
                     'debug_info': {
                         'session_id': session.get('fitness_session_id'),
                         'has_memory_manager': False,
-                        'has_client': False
+                        'has_client': False,
+                        'error': str(e)
                     }
                 }
             }), 500
 
         # Check if we have a valid API key
         if not os.getenv('GROQ_API_KEY'):
+            print("GROQ_API_KEY not found in environment")
             return jsonify({
                 'status': 'error',
                 'message': 'GROQ_API_KEY not found in environment variables',
@@ -260,11 +307,12 @@ def profile_status():
                 }
             }), 401
 
-        # Verify memory manager initialization
-        if not trainer.memory_manager or not trainer.memory_manager.is_initialized():
+        # Check trainer initialization
+        if not hasattr(trainer, 'initialized') or not trainer.initialized:
+            print("Trainer not fully initialized")
             return jsonify({
-                'status': 'error',
-                'message': 'Memory manager not properly initialized',
+                'status': 'initializing',
+                'message': 'AI trainer is still initializing',
                 'data': {
                     'profile_exists': bool(trainer.user_profile),
                     'memory_initialized': False,
@@ -273,13 +321,72 @@ def profile_status():
                         'has_memory_manager': hasattr(trainer, 'memory_manager'),
                         'has_client': hasattr(trainer, 'client'),
                         'api_key_set': True,
+                        'trainer_initialized': False
+                    }
+                }
+            }), 503
+
+        # Verify memory manager initialization
+        if not hasattr(trainer, 'memory_manager') or not trainer.memory_manager:
+            print("Memory manager not created")
+            return jsonify({
+                'status': 'error',
+                'message': 'Memory manager not created',
+                'data': {
+                    'profile_exists': bool(trainer.user_profile),
+                    'memory_initialized': False,
+                    'debug_info': {
+                        'session_id': session.get('fitness_session_id'),
+                        'has_memory_manager': False,
+                        'has_client': hasattr(trainer, 'client'),
+                        'api_key_set': True,
+                        'trainer_initialized': True
+                    }
+                }
+            }), 500
+
+        if not trainer.memory_manager.is_initialized():
+            print("Memory manager not initialized")
+            return jsonify({
+                'status': 'error',
+                'message': 'Memory manager not properly initialized',
+                'data': {
+                    'profile_exists': bool(trainer.user_profile),
+                    'memory_initialized': False,
+                    'debug_info': {
+                        'session_id': session.get('fitness_session_id'),
+                        'has_memory_manager': True,
+                        'has_client': hasattr(trainer, 'client'),
+                        'api_key_set': True,
+                        'trainer_initialized': True,
                         'memory_manager_initialized': False
                     }
                 }
             }), 500
 
+        # Verify client is properly initialized
+        if not hasattr(trainer, 'client') or not trainer.client:
+            print("Client not properly initialized")
+            return jsonify({
+                'status': 'error',
+                'message': 'AI client not properly initialized',
+                'data': {
+                    'profile_exists': bool(trainer.user_profile),
+                    'memory_initialized': True,
+                    'debug_info': {
+                        'session_id': session.get('fitness_session_id'),
+                        'has_memory_manager': True,
+                        'has_client': False,
+                        'api_key_set': True,
+                        'trainer_initialized': True,
+                        'memory_manager_initialized': True
+                    }
+                }
+            }), 500
+
         # All checks passed
-        return jsonify({
+        print("Profile and memory manager are properly initialized")
+        response_data = {
             'status': 'success',
             'message': 'Profile and memory manager are properly initialized',
             'data': {
@@ -290,13 +397,17 @@ def profile_status():
                     'has_memory_manager': True,
                     'has_client': True,
                     'api_key_set': True,
+                    'trainer_initialized': True,
                     'memory_manager_initialized': True
                 }
             }
-        }), 200
+        }
+        print(f"Status response: {response_data}")
+        return jsonify(response_data), 200
 
     except ValueError as e:
         error_msg = str(e)
+        print(f"ValueError in profile status check: {error_msg}")
         if "invalid_api_key" in error_msg.lower() or "authentication" in error_msg.lower():
             return jsonify({
                 'status': 'error',
@@ -329,7 +440,8 @@ def profile_status():
                     'has_memory_manager': False,
                     'has_client': False,
                     'api_key_set': bool(os.getenv('GROQ_API_KEY')),
-                    'error_type': 'unknown_error'
+                    'error_type': 'unknown_error',
+                    'error_details': str(e)
                 }
             }
         }), 500
@@ -338,51 +450,102 @@ def profile_status():
 def chat():
     """Handle chat with fitness AI"""
     try:
+        print("\n=== Chat Request ===")
+        
+        # Check for active session
         if 'fitness_session_id' not in session:
-            return jsonify({'success': False, 'error': 'No active session'}), 400
+            print("No active session found")
+            return jsonify({
+                'success': False,
+                'error': 'No active session'
+            }), 400
         
+        # Get request data
         data = request.json
+        if not data:
+            print("No request data provided")
+            return jsonify({
+                'success': False,
+                'error': 'No request data provided'
+            }), 400
+            
         message = data.get('message', '').strip()
-        
         if not message:
+            print("Empty message received")
             return jsonify({
                 'success': False,
                 'error': 'Message cannot be empty'
             }), 400
         
-        trainer = get_or_create_trainer(session['fitness_session_id'])
+        # Get trainer instance
+        try:
+            trainer = get_or_create_trainer(session['fitness_session_id'])
+            print(f"Trainer instance retrieved for session {session['fitness_session_id']}")
+        except Exception as e:
+            print(f"Error getting trainer instance: {str(e)}")
+            return jsonify({
+                'success': False,
+                'error': f'Failed to get trainer instance: {str(e)}'
+            }), 500
         
-        # Check if memory manager exists and is ready
-        if not hasattr(trainer, 'memory_manager'):
-            # Try to initialize memory manager if it doesn't exist
+        # Check trainer initialization
+        if not hasattr(trainer, 'initialized') or not trainer.initialized:
+            print("Trainer not fully initialized")
+            return jsonify({
+                'success': False,
+                'error': 'AI trainer is still initializing',
+                'status': 'initializing'
+            }), 503
+        
+        # Check memory manager
+        if not hasattr(trainer, 'memory_manager') or not trainer.memory_manager:
+            print("Memory manager not created")
             try:
+                print("Attempting to initialize memory manager...")
                 trainer.memory_manager = FitnessMemoryManager(trainer.client, trainer.user_profile)
+                print("Memory manager initialized successfully")
             except Exception as e:
-                print(f"Error initializing memory manager: {e}")
+                print(f"Failed to initialize memory manager: {str(e)}")
                 return jsonify({
                     'success': False,
-                    'error': 'AI trainer is still initializing. Please try again in a few seconds.'
-                }), 503  # Service Unavailable
+                    'error': 'Failed to initialize memory manager',
+                    'details': str(e)
+                }), 500
         
+        # Verify memory manager initialization
+        if not trainer.memory_manager.is_initialized():
+            print("Memory manager not properly initialized")
+            return jsonify({
+                'success': False,
+                'error': 'Memory manager not properly initialized'
+            }), 500
+        
+        # Get AI response
         try:
+            print("Getting AI response...")
             response = trainer.get_ai_response(message)
+            print("AI response received successfully")
+            
             return jsonify({
                 'success': True,
                 'response': response,
                 'timestamp': datetime.now().isoformat()
             })
+            
         except Exception as e:
-            print(f"Error getting AI response: {e}")
+            print(f"Error getting AI response: {str(e)}")
+            print(f"Traceback: {traceback.format_exc()}")
             return jsonify({
                 'success': False,
-                'error': 'AI trainer is having trouble processing your request. Please try again.'
-            }), 503
+                'error': f'Failed to get AI response: {str(e)}'
+            }), 500
         
     except Exception as e:
-        print(f"Error in chat endpoint: {e}")
+        print(f"Unexpected error in chat endpoint: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': f'Unexpected error: {str(e)}'
         }), 500
 
 @fitness_bp.route('/workout', methods=['POST'])

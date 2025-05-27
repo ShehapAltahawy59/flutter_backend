@@ -5,6 +5,9 @@ import tempfile
 import logging
 import traceback
 import json
+from langchain.memory import ConversationBufferMemory
+from langchain.schema import HumanMessage, AIMessage
+from typing import Dict, Any
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -12,116 +15,189 @@ logger = logging.getLogger(__name__)
 
 class FitnessMemoryManager:
     def __init__(self, client, user_profile):
-        """Initialize memory manager with optimized settings"""
-        logger.info("Initializing FitnessMemoryManager...")
-        logger.info(f"User profile: {user_profile}")
-        
-        self.client = client
-        self.user_profile = user_profile
-        self.initialized = False
-        
+        """Initialize memory manager with Groq client and user profile"""
+        print("\n=== Initializing FitnessMemoryManager ===")
         try:
-            # Create memory storage directory
-            self.temp_dir = tempfile.gettempdir()
-            self.memory_dir = os.path.join(self.temp_dir, "fitness_memories")
-            os.makedirs(self.memory_dir, exist_ok=True)
+            self.client = client
+            self.user_profile = user_profile
+            self.initialized = False
             
+            print("Creating cache directories...")
+            # Create cache directories in user's temp directory
+            self.model_cache_dir = os.path.join(tempfile.gettempdir(), 'fitness_model_cache')
+            self.chroma_db_dir = os.path.join(tempfile.gettempdir(), 'fitness_chroma_db')
+            
+            os.makedirs(self.model_cache_dir, exist_ok=True)
+            os.makedirs(self.chroma_db_dir, exist_ok=True)
+            print(f"Cache directories created at {self.model_cache_dir} and {self.chroma_db_dir}")
+            
+            print("Initializing conversation memory...")
             # Initialize conversation memory
-            logger.info("Initializing conversation memory...")
-            self.conversation_memory = []
-            self.memory_file = os.path.join(self.memory_dir, f"memory_{user_profile.get('name', 'default')}.json")
+            self.conversation_memory = ConversationBufferMemory(
+                memory_key="chat_history",
+                return_messages=True
+            )
+            print("Conversation memory initialized")
             
-            # Load existing memory if available
-            if os.path.exists(self.memory_file):
-                try:
-                    with open(self.memory_file, 'r') as f:
-                        self.conversation_memory = json.load(f)
-                except Exception as e:
-                    logger.error(f"Error loading memory file: {str(e)}")
-                    self.conversation_memory = []
+            print("Initializing memory retriever...")
+            # Initialize memory retriever
+            self.memory_retriever = None
+            print("Memory retriever initialized")
             
             # Mark as initialized
             self.initialized = True
-            logger.info("Memory manager initialized successfully")
+            print("FitnessMemoryManager initialized successfully")
             
         except Exception as e:
-            logger.error(f"Error initializing memory manager: {str(e)}")
-            logger.error(f"Traceback: {traceback.format_exc()}")
+            print(f"Error initializing FitnessMemoryManager: {str(e)}")
+            print(f"Traceback: {traceback.format_exc()}")
             self.initialized = False
-            self.cleanup()
             raise
-    
+
     def is_initialized(self):
         """Check if memory manager is properly initialized"""
-        return self.initialized
-    
-    def add_conversation_turn(self, user_message: str, ai_response: str):
-        """Add a conversation turn to memory"""
-        if not self.initialized:
-            logger.error("Memory manager not initialized")
-            return
-            
-        try:
-            logger.info("Adding conversation turn to memory...")
-            
-            # Add messages to conversation memory
-            self.conversation_memory.append({
-                "user": user_message,
-                "ai": ai_response,
-                "timestamp": datetime.now().isoformat()
-            })
-            
-            # Keep only last 10 conversations to manage memory
-            if len(self.conversation_memory) > 10:
-                self.conversation_memory = self.conversation_memory[-10:]
-            
-            # Save to file
-            self._save_memory()
-            
-            logger.info("Conversation turn added successfully")
-            
-        except Exception as e:
-            logger.error(f"Error adding conversation turn: {str(e)}")
-            logger.error(f"Traceback: {traceback.format_exc()}")
-    
+        return hasattr(self, 'initialized') and self.initialized
+
     def get_relevant_context(self, query: str) -> str:
-        """Get relevant context from memory for the given query"""
-        if not self.initialized:
-            logger.error("Memory manager not initialized")
-            return ""
-            
+        """Get relevant context from memory"""
         try:
-            logger.info(f"Getting relevant context for query: {query}")
+            print("\n=== Getting Relevant Context ===")
+            if not self.is_initialized():
+                print("Memory manager not initialized")
+                return ""
             
             # Get recent conversation history
-            context = []
+            print("Getting recent conversation history...")
+            recent_history = self.conversation_memory.load_memory_variables({})
+            chat_history = recent_history.get("chat_history", [])
             
-            # Add recent conversation history
-            if self.conversation_memory:
-                context.append("Recent conversation:")
-                for msg in self.conversation_memory[-3:]:  # Last 3 messages
-                    context.append(f"User: {msg['user']}")
-                    context.append(f"AI: {msg['ai']}")
+            # Format conversation history
+            formatted_history = []
+            for message in chat_history:
+                if isinstance(message, HumanMessage):
+                    formatted_history.append(f"User: {message.content}")
+                elif isinstance(message, AIMessage):
+                    formatted_history.append(f"Assistant: {message.content}")
             
-            # Join all context with newlines
-            return "\n".join(context) if context else ""
+            # Combine into context
+            context = "\n".join(formatted_history[-5:]) if formatted_history else ""
+            print(f"Retrieved {len(formatted_history)} recent messages")
+            
+            return context
             
         except Exception as e:
-            logger.error(f"Error getting relevant context: {str(e)}")
-            logger.error(f"Traceback: {traceback.format_exc()}")
+            print(f"Error getting relevant context: {str(e)}")
+            print(f"Traceback: {traceback.format_exc()}")
             return ""
-    
-    def _save_memory(self):
-        """Save memory to file"""
-        if not self.initialized:
-            logger.error("Memory manager not initialized")
-            return
-            
+
+    def add_conversation_turn(self, user_message: str, ai_response: str):
+        """Add a conversation turn to memory"""
         try:
-            with open(self.memory_file, 'w') as f:
-                json.dump(self.conversation_memory, f)
+            print("\n=== Adding Conversation Turn ===")
+            if not self.is_initialized():
+                print("Memory manager not initialized")
+                return
+            
+            print("Adding messages to conversation memory...")
+            self.conversation_memory.chat_memory.add_user_message(user_message)
+            self.conversation_memory.chat_memory.add_ai_message(ai_response)
+            print("Messages added successfully")
+            
         except Exception as e:
-            logger.error(f"Error saving memory: {str(e)}")
+            print(f"Error adding conversation turn: {str(e)}")
+            print(f"Traceback: {traceback.format_exc()}")
+
+    def get_memory_summary(self) -> Dict[str, Any]:
+        """Get summary of memory contents"""
+        try:
+            print("\n=== Getting Memory Summary ===")
+            if not self.is_initialized():
+                print("Memory manager not initialized")
+                return {
+                    'total_conversation_messages': 0,
+                    'stored_important_memories': 0,
+                    'buffer_summary_length': 0,
+                    'user_profile': None
+                }
+            
+            # Get conversation history
+            recent_history = self.conversation_memory.load_memory_variables({})
+            chat_history = recent_history.get("chat_history", [])
+            
+            summary = {
+                'total_conversation_messages': len(chat_history),
+                'stored_important_memories': 0,
+                'buffer_summary_length': 0,
+                'user_profile': self.user_profile
+            }
+            
+            print(f"Memory summary: {summary}")
+            return summary
+            
+        except Exception as e:
+            print(f"Error getting memory summary: {str(e)}")
+            print(f"Traceback: {traceback.format_exc()}")
+            return {
+                'total_conversation_messages': 0,
+                'stored_important_memories': 0,
+                'buffer_summary_length': 0,
+                'user_profile': None
+            }
+
+    def clear_session_memory(self):
+        """Clear session memory"""
+        try:
+            print("\n=== Clearing Session Memory ===")
+            if not self.is_initialized():
+                print("Memory manager not initialized")
+                return
+            
+            print("Clearing conversation memory...")
+            self.conversation_memory.clear()
+            print("Session memory cleared successfully")
+            
+        except Exception as e:
+            print(f"Error clearing session memory: {str(e)}")
+            print(f"Traceback: {traceback.format_exc()}")
+
+    def export_memories(self) -> Dict[str, Any]:
+        """Export memories for saving"""
+        try:
+            print("\n=== Exporting Memories ===")
+            if not self.is_initialized():
+                print("Memory manager not initialized")
+                return {}
+            
+            # Get conversation history
+            recent_history = self.conversation_memory.load_memory_variables({})
+            chat_history = recent_history.get("chat_history", [])
+            
+            # Format messages for export
+            conversation_messages = []
+            for message in chat_history:
+                if isinstance(message, HumanMessage):
+                    conversation_messages.append({
+                        'type': 'HumanMessage',
+                        'content': message.content
+                    })
+                elif isinstance(message, AIMessage):
+                    conversation_messages.append({
+                        'type': 'AIMessage',
+                        'content': message.content
+                    })
+            
+            memories = {
+                'conversation_messages': conversation_messages,
+                'vector_memories': []
+            }
+            
+            print(f"Exported {len(conversation_messages)} conversation messages")
+            return memories
+            
+        except Exception as e:
+            print(f"Error exporting memories: {str(e)}")
+            print(f"Traceback: {traceback.format_exc()}")
+            return {}
     
     def cleanup(self):
         """Clean up resources"""
@@ -135,62 +211,14 @@ class FitnessMemoryManager:
             logger.error(f"Error during cleanup: {str(e)}")
             logger.error(f"Traceback: {traceback.format_exc()}")
     
-    def get_memory_summary(self):
-        """Get summary of current memory state"""
-        if not self.initialized:
-            logger.error("Memory manager not initialized")
-            return {
-                "error": "Memory manager not initialized",
-                "user_profile": self.user_profile
-            }
-            
-        try:
-            logger.info("Getting memory summary...")
-            summary = {
-                "total_conversation_messages": len(self.conversation_memory),
-                "user_profile": self.user_profile,
-                "initialized": self.initialized
-            }
-            logger.info(f"Memory summary: {summary}")
-            return summary
-        except Exception as e:
-            logger.error(f"Error getting memory summary: {str(e)}")
-            logger.error(f"Traceback: {traceback.format_exc()}")
-            return {
-                "error": str(e),
-                "user_profile": self.user_profile,
-                "initialized": self.initialized
-            }
-    
-    def clear_session_memory(self):
-        """Clear session memory"""
+    def _save_memory(self):
+        """Save memory to file"""
         if not self.initialized:
             logger.error("Memory manager not initialized")
             return
             
         try:
-            logger.info("Clearing session memory...")
-            self.conversation_memory = []
-            self._save_memory()
-            gc.collect()
-            logger.info("Session memory cleared successfully")
+            with open(self.memory_file, 'w') as f:
+                json.dump(self.conversation_memory, f)
         except Exception as e:
-            logger.error(f"Error clearing session memory: {str(e)}")
-            logger.error(f"Traceback: {traceback.format_exc()}")
-    
-    def export_memories(self):
-        """Export memories for saving"""
-        if not self.initialized:
-            logger.error("Memory manager not initialized")
-            return {}
-            
-        try:
-            logger.info("Exporting memories...")
-            return {
-                "conversation_messages": self.conversation_memory,
-                "initialized": self.initialized
-            }
-        except Exception as e:
-            logger.error(f"Error exporting memories: {str(e)}")
-            logger.error(f"Traceback: {traceback.format_exc()}")
-            return {} 
+            logger.error(f"Error saving memory: {str(e)}")

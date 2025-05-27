@@ -138,29 +138,33 @@ class FitnessAPIClient:
             
             print(f"Status response: {response}")
             
-            if not response.get('success'):
-                error_msg = response.get('error', 'Unknown error')
+            # Check status field instead of success
+            if response.get('status') != 'success':
+                error_msg = response.get('message', 'Unknown error')
                 print(f"Profile status check failed: {error_msg}")
                 return {
                     "success": False,
-                    "error": error_msg
+                    "error": error_msg,
+                    "data": response.get('data', {})
                 }
             
-            memory_initialized = response.get('memory_initialized', False)
+            # Get memory initialization status from data
+            data = response.get('data', {})
+            memory_initialized = data.get('memory_initialized', False)
             if not memory_initialized:
-                error_msg = response.get('error', 'Memory initialization failed')
+                error_msg = response.get('message', 'Memory initialization failed')
                 print(f"Memory not initialized: {error_msg}")
                 return {
                     "success": False,
                     "error": error_msg,
-                    "profile": response.get('profile')
+                    "data": data
                 }
             
             print("Profile status check successful")
             return {
                 "success": True,
-                "profile": response.get('profile'),
-                "memory_initialized": True
+                "data": data,
+                "memory_initialized": memory_initialized
             }
             
         except Exception as e:
@@ -240,7 +244,7 @@ class FitnessAPIClient:
 
 # Example Usage
 if __name__ == "__main__":
-    client = FitnessAPIClient("https://flutter-backend-dcqs.onrender.com")
+    client = FitnessAPIClient("http://localhost:5000")
     
     try:
         # 1. Start a session
