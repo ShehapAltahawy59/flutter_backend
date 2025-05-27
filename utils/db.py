@@ -1,10 +1,11 @@
 from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
+from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError, ConfigurationError
 import logging
-from config import MONGODB_CONFIG
+from config import MONGODB_CONFIG, MONGODB_URI, DB_NAME, COLLECTIONS
 import time
 from typing import Dict, Any
-from config import MONGODB_URI, DB_NAME, COLLECTIONS
+import gc
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -35,17 +36,15 @@ class DatabaseConnection:
             try:
                 logger.info(f"Attempting to connect to MongoDB (attempt {self._retry_count + 1}/{self._max_retries})")
                 
-                # Use connection pooling and shorter timeouts
+                # Get MongoDB URI from environment variable
+                mongodb_uri = os.getenv('MONGODB_URI')
+                if not mongodb_uri:
+                    raise ConfigurationError("MONGODB_URI environment variable is not set")
+                
+                # Use connection pooling and configuration from MONGODB_CONFIG
                 self._client = MongoClient(
-                    MONGODB_URI,
-                    maxPoolSize=10,
-                    minPoolSize=1,
-                    maxIdleTimeMS=30000,
-                    waitQueueTimeoutMS=5000,
-                    connectTimeoutMS=5000,
-                    serverSelectionTimeoutMS=5000,
-                    retryWrites=True,
-                    retryReads=True
+                    mongodb_uri,
+                    **MONGODB_CONFIG
                 )
                 
                 # Test the connection
@@ -54,7 +53,7 @@ class DatabaseConnection:
                 logger.info("Successfully connected to MongoDB")
                 return
                 
-            except (ConnectionFailure, ServerSelectionTimeoutError) as e:
+            except (ConnectionFailure, ServerSelectionTimeoutError, ConfigurationError) as e:
                 self._retry_count += 1
                 logger.error(f"MongoDB connection attempt {self._retry_count} failed: {str(e)}")
                 if self._retry_count < self._max_retries:
@@ -115,4 +114,5 @@ class DatabaseConnection:
             self._client.close()
             self._client = None
             self._db = None
-            self._instance = None 
+            self._instance = None
+            gc.collect()  # Force garbage collection after closing connection 

@@ -226,38 +226,60 @@ def profile_status():
             }), 404
         
         # Try to initialize memory if not already initialized
-        if not hasattr(trainer, 'memory_manager'):
+        if not hasattr(trainer, 'memory_manager') or trainer.memory_manager is None:
             try:
                 print(f"Initializing memory manager for user {trainer.user_profile.get('name', 'unknown')}...")
-                trainer.memory_manager = FitnessMemoryManager(trainer.client, trainer.user_profile)
-                # Verify memory manager is properly initialized
-                if not trainer.memory_manager or not hasattr(trainer.memory_manager, 'collection'):
-                    raise Exception("Memory manager initialization incomplete")
-                memory_initialized = True
-                print("Memory manager initialized successfully")
+                print(f"User profile data: {trainer.user_profile}")
+                
+                # Ensure we have a valid client
+                if not hasattr(trainer, 'client') or trainer.client is None:
+                    raise ValueError("Groq client not initialized")
+                
+                # Initialize memory manager with detailed error handling
+                try:
+                    trainer.memory_manager = FitnessMemoryManager(trainer.client, trainer.user_profile)
+                    print("Memory manager initialized successfully")
+                    memory_initialized = True
+                    error_message = None
+                except Exception as e:
+                    print(f"Error during memory manager initialization: {str(e)}")
+                    print(f"Error type: {type(e).__name__}")
+                    import traceback
+                    print(f"Traceback: {traceback.format_exc()}")
+                    memory_initialized = False
+                    error_message = f"Memory initialization failed: {str(e)}"
             except Exception as e:
-                print(f"Error initializing memory manager: {str(e)}")
+                print(f"Error in memory initialization process: {str(e)}")
                 print(f"Error type: {type(e).__name__}")
                 import traceback
                 print(f"Traceback: {traceback.format_exc()}")
                 memory_initialized = False
-                error_message = str(e)
+                error_message = f"Memory initialization process failed: {str(e)}"
         else:
             # Verify memory manager is still valid
             try:
-                if not trainer.memory_manager or not hasattr(trainer.memory_manager, 'collection'):
+                if not trainer.memory_manager or not hasattr(trainer.memory_manager, 'vector_store'):
                     raise Exception("Memory manager not properly initialized")
                 memory_initialized = True
                 error_message = None
             except Exception as e:
+                print(f"Error verifying memory manager: {str(e)}")
+                print(f"Error type: {type(e).__name__}")
+                import traceback
+                print(f"Traceback: {traceback.format_exc()}")
                 memory_initialized = False
-                error_message = str(e)
+                error_message = f"Memory verification failed: {str(e)}"
         
         response_data = {
             'success': True,
             'profile': trainer.user_profile,
             'memory_initialized': memory_initialized,
-            'error': error_message
+            'error': error_message,
+            'debug_info': {
+                'has_memory_manager': hasattr(trainer, 'memory_manager'),
+                'has_client': hasattr(trainer, 'client'),
+                'has_vector_store': hasattr(trainer.memory_manager, 'vector_store') if hasattr(trainer, 'memory_manager') else False
+            }
         }
         print(f"Sending response: {response_data}")
         
@@ -272,7 +294,11 @@ def profile_status():
         print(f"Traceback: {traceback.format_exc()}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': str(e),
+            'debug_info': {
+                'error_type': type(e).__name__,
+                'traceback': traceback.format_exc()
+            }
         }), 500
 
 @fitness_bp.route('/chat', methods=['POST'])

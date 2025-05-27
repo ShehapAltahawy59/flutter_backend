@@ -1700,3 +1700,60 @@ bson.errors.InvalidId: 'test_user_id' is not a valid ObjectId, it must be a 12-b
 2025-05-27 23:21:20,569 - utils.model_loader - INFO - Essential model files download complete
 2025-05-27 23:21:20,569 - utils.model_loader - INFO - ModelLoader initialization complete
 2025-05-27 23:21:20,569 - app - INFO - Model initialization complete
+2025-05-27 23:40:41,749 - utils.db - INFO - Attempting to connect to MongoDB (attempt 1/3)
+2025-05-27 23:40:41,784 - app - ERROR - Failed to initialize database connection: Unknown option: connect_timeout_ms. Did you mean one of (connecttimeoutms, sockettimeoutms, timeoutms) or maybe a camelCase version of one? Refer to docstring.
+2025-05-27 23:41:56,340 - utils.db - INFO - Attempting to connect to MongoDB (attempt 1/3)
+2025-05-27 23:41:56,346 - utils.db - ERROR - MongoDB connection attempt 1 failed: Unknown option: connect_timeout_ms. Did you mean one of (connecttimeoutms, sockettimeoutms, timeoutms) or maybe a camelCase version of one? Refer to docstring.
+2025-05-27 23:41:56,346 - utils.db - INFO - Retrying in 1 seconds...
+2025-05-27 23:41:57,347 - utils.db - INFO - Attempting to connect to MongoDB (attempt 2/3)
+2025-05-27 23:41:57,348 - utils.db - ERROR - MongoDB connection attempt 2 failed: Unknown option: connect_timeout_ms. Did you mean one of (connecttimeoutms, sockettimeoutms, timeoutms) or maybe a camelCase version of one? Refer to docstring.
+2025-05-27 23:41:57,348 - utils.db - INFO - Retrying in 1 seconds...
+2025-05-27 23:41:58,354 - utils.db - INFO - Attempting to connect to MongoDB (attempt 3/3)
+2025-05-27 23:41:58,363 - utils.db - ERROR - MongoDB connection attempt 3 failed: Unknown option: connect_timeout_ms. Did you mean one of (connecttimeoutms, sockettimeoutms, timeoutms) or maybe a camelCase version of one? Refer to docstring.
+2025-05-27 23:41:58,363 - utils.db - ERROR - Max retries reached. Could not connect to MongoDB
+2025-05-27 23:41:58,363 - app - ERROR - Failed to initialize database connection: Unknown option: connect_timeout_ms. Did you mean one of (connecttimeoutms, sockettimeoutms, timeoutms) or maybe a camelCase version of one? Refer to docstring.
+2025-05-27 23:42:35,798 - utils.db - INFO - Attempting to connect to MongoDB (attempt 1/3)
+2025-05-27 23:42:36,532 - utils.db - INFO - Successfully connected to MongoDB
+2025-05-27 23:42:36,532 - app - INFO - Database connection initialized successfully
+2025-05-27 23:42:36,532 - app - INFO - Initializing model loader and pre-downloading models...
+2025-05-27 23:42:36,533 - utils.model_loader - INFO - Initializing ModelLoader...
+2025-05-27 23:42:36,798 - utils.model_loader - INFO - Pre-downloading ChromaDB embedding model...
+2025-05-27 23:42:36,798 - utils.model_loader - INFO - Downloading essential model files for sentence-transformers/all-MiniLM-L6-v2
+2025-05-27 23:42:37,277 - utils.model_loader - INFO - Essential model files download complete
+2025-05-27 23:42:37,277 - utils.model_loader - INFO - ModelLoader initialization complete
+2025-05-27 23:42:37,277 - app - INFO - Model initialization complete
+2025-05-27 23:42:37,324 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-05-27 23:42:37,324 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-05-27 23:43:39,864 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:43:39] "[33mDELETE /api/users/68361fa43c9a90b7257d8e21 HTTP/1.1[0m" 404 -
+2025-05-27 23:43:42,038 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:43:42] "[35m[1mPOST /api/users/ HTTP/1.1[0m" 500 -
+2025-05-27 23:43:44,185 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:43:44] "[33mGET /api/users/68361fa43c9a90b7257d8e21 HTTP/1.1[0m" 404 -
+2025-05-27 23:44:17,979 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:44:17] "[33mDELETE /api/users/68361fa43c9a90b7257d8e21 HTTP/1.1[0m" 404 -
+2025-05-27 23:44:20,144 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:44:20] "[35m[1mPOST /api/users/ HTTP/1.1[0m" 500 -
+2025-05-27 23:44:42,425 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:44:42] "[33mDELETE /api/users/68361fa43c9a90b7257d8e21 HTTP/1.1[0m" 404 -
+2025-05-27 23:44:44,698 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:44:44] "[35m[1mPOST /api/users/ HTTP/1.1[0m" 201 -
+2025-05-27 23:44:47,405 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:44:47] "GET /api/users/6836243c2ae789f8eb268aed HTTP/1.1" 200 -
+2025-05-27 23:45:06,661 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:45:06] "POST /api/fitness/session/start HTTP/1.1" 200 -
+2025-05-27 23:45:29,392 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: sentence-transformers/all-MiniLM-L6-v2
+2025-05-27 23:45:35,963 - huggingface_hub.file_download - WARNING - Xet Storage is enabled for this repo, but the 'hf_xet' package is not installed. Falling back to regular HTTP download. For better performance, install the package with: `pip install huggingface_hub[hf_xet]` or `pip install hf_xet`
+2025-05-27 23:46:16,363 - huggingface_hub.file_download - WARNING - Error while downloading from https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/model.safetensors: HTTPSConnectionPool(host='cas-bridge.xethub.hf.co', port=443): Read timed out.
+Trying to resume download...
+2025-05-27 23:46:31,026 - chromadb.telemetry.product.posthog - INFO - Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2025-05-27 23:46:32,187 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:46:32] "POST /api/fitness/profile HTTP/1.1" 200 -
+2025-05-27 23:46:34,303 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:46:34] "GET /api/fitness/profile/status HTTP/1.1" 200 -
+2025-05-27 23:46:39,410 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:46:39] "GET /api/fitness/profile/status HTTP/1.1" 200 -
+2025-05-27 23:46:44,511 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:46:44] "GET /api/fitness/profile/status HTTP/1.1" 200 -
+2025-05-27 23:46:49,574 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:46:49] "GET /api/fitness/profile/status HTTP/1.1" 200 -
+2025-05-27 23:46:54,963 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:46:54] "GET /api/fitness/profile/status HTTP/1.1" 200 -
+2025-05-27 23:47:38,478 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:47:38] "POST /api/fitness/session/start HTTP/1.1" 200 -
+2025-05-27 23:47:40,821 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: sentence-transformers/all-MiniLM-L6-v2
+2025-05-27 23:47:43,137 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:47:43] "POST /api/fitness/profile HTTP/1.1" 200 -
+2025-05-27 23:47:45,695 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:47:45] "GET /api/fitness/profile/status HTTP/1.1" 200 -
+2025-05-27 23:47:50,783 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:47:50] "GET /api/fitness/profile/status HTTP/1.1" 200 -
+2025-05-27 23:47:55,867 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:47:55] "GET /api/fitness/profile/status HTTP/1.1" 200 -
+2025-05-27 23:48:01,008 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:48:01] "GET /api/fitness/profile/status HTTP/1.1" 200 -
+2025-05-27 23:48:06,447 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:48:06] "GET /api/fitness/profile/status HTTP/1.1" 200 -
+2025-05-27 23:48:28,630 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:48:28] "POST /api/fitness/session/start HTTP/1.1" 200 -
+2025-05-27 23:48:31,304 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: sentence-transformers/all-MiniLM-L6-v2
+2025-05-27 23:48:33,919 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:48:33] "POST /api/fitness/profile HTTP/1.1" 200 -
+2025-05-27 23:48:35,993 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 23:48:35] "GET /api/fitness/profile/status HTTP/1.1" 200 -

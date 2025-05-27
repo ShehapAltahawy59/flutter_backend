@@ -8,6 +8,19 @@ load_dotenv()
 MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017')
 DB_NAME = os.getenv('MONGO_DBNAME', 'flutter_project')
 
+# MongoDB Connection Settings
+MONGODB_CONFIG = {
+    'connectTimeoutMS': 5000,
+    'serverSelectionTimeoutMS': 5000,
+    'retryWrites': True,
+    'retryReads': True,
+    'maxPoolSize': 10,
+    'minPoolSize': 1,
+    'maxIdleTimeMS': 30000,
+    'waitQueueTimeoutMS': 5000,
+    'heartbeatFrequencyMS': 10000
+}
+
 # Collection Names
 COLLECTIONS = {
     'users': 'users',
