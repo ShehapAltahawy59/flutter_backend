@@ -12,10 +12,9 @@ langchain-community
 sentence-transformers
 torch
 transformers
-redis
-python-jose
 bcrypt
 requests
 groq
 chromadb
 langchain-community
+langchain_huggingface
