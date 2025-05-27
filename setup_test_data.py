@@ -14,14 +14,14 @@ def setup_test_data():
     base_url = "https://flutter-backend-dcqs.onrender.com"
     
     # Create test IDs (24-character hex strings)
-    test_user_id = "507f1f77bcf86cd799439011"  # Valid 24-character hex string
+    test_user_id = "683610a1188e3fd04aa64703"  # Valid 24-character hex string
     test_family_id = "507f1f77bcf86cd799439012"  # Valid 24-character hex string
     
     # Create test user data
     test_user = {
         "name": "Test User",
-        "email": "test@example.com",
-        "phone": "1234567890",
+        "email": "",
+        "phone": "",
         "location": {
             "type": "Point",
             "coordinates": [-122.4194, 37.7749]  # [longitude, latitude] for GeoJSON
@@ -37,9 +37,9 @@ def setup_test_data():
         print(f"Delete by ID response: {response.status_code}")
         
         # Then try to delete by email
-        print("\nClearing existing test data by email...")
-        response = requests.delete(f"{base_url}/api/users/email/{test_user['email']}")
-        print(f"Delete by email response: {response.status_code}")
+        # print("\nClearing existing test data by email...")
+        # response = requests.delete(f"{base_url}/api/users/email/{test_user['email']}")
+        # print(f"Delete by email response: {response.status_code}")
         
         # Create test user
         print("\nCreating test user...")
@@ -51,7 +51,7 @@ def setup_test_data():
         )
         
         print(f"Create response status: {response.status_code}")
-        print(f"Create response content: {response.text}")
+        #print(f"Create response content: {response.text}")
         
         if response.status_code not in [200, 201]:
             raise Exception(f"Failed to create test user: {response.text}")

@@ -31,9 +31,9 @@ def create_app():
     # Configure CORS to allow all origins
     CORS(app, resources={
         r"/api/*": {
-            "origins": "*",
-            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"]
+            "origins": API_CONFIG['cors_origins'],
+            "methods": SECURITY_CONFIG['cors_methods'],
+            "allow_headers": SECURITY_CONFIG['cors_headers']
         }
     })
     
@@ -62,7 +62,11 @@ def create_app():
     # Health check endpoint
     @app.route('/health', methods=['GET'])
     def health_check():
-        return jsonify({"status": "healthy"}), 200
+        return jsonify({
+            "status": "healthy",
+            "environment": os.getenv('FLASK_ENV', 'development'),
+            "base_url": API_CONFIG['base_url']
+        }), 200
     
     # API health check endpoint
     @app.route('/api/health', methods=['GET'])
@@ -70,16 +74,9 @@ def create_app():
         return jsonify({
             "status": "healthy",
             "version": "2",
-            "environment": os.getenv('FLASK_ENV', 'development')
+            "environment": os.getenv('FLASK_ENV', 'development'),
+            "base_url": API_CONFIG['base_url']
         }), 200
-    
-    # Enable CORS
-    @app.after_request
-    def after_request(response):
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-        return response
     
     return app
 

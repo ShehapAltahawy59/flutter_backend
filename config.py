@@ -23,7 +23,9 @@ COLLECTIONS = {
 API_CONFIG = {
     'host': os.getenv('HOST', '0.0.0.0'),  # Use 0.0.0.0 to accept connections from any IP
     'port': int(os.getenv('PORT', 5000)),
-    'debug': os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+    'debug': os.getenv('FLASK_DEBUG', 'False').lower() == 'true',
+    'base_url': os.getenv('BASE_URL', 'http://localhost:5000'),  # Add base URL for API endpoints
+    'cors_origins': os.getenv('CORS_ORIGINS', '*').split(',')  # Allow multiple origins
 }
 
 # Security Configuration
@@ -107,5 +109,7 @@ DB_CONFIG = {
 SECURITY_CONFIG = {
     'secret_key': os.getenv('FLASK_SECRET_KEY', 'dev_key_please_change'),
     'session_type': 'filesystem',
-    'session_lifetime': 3600  # 1 hour in seconds
+    'session_lifetime': 3600,  # 1 hour in seconds
+    'cors_headers': ['Content-Type', 'Authorization', 'X-Requested-With'],
+    'cors_methods': ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 } 
