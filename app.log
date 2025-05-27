@@ -1612,3 +1612,18 @@ bson.errors.InvalidId: 'test_user_id' is not a valid ObjectId, it must be a 12-b
 2025-05-27 21:58:21,675 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 21:58:21] "POST /api/events/68360b4624efd1fb39fe0ccb/join HTTP/1.1" 200 -
 2025-05-27 21:58:23,827 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 21:58:23] "GET /api/events/family/68360b413c1fc5d70fc2ed77 HTTP/1.1" 200 -
 2025-05-27 21:58:25,967 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 21:58:25] "POST /api/events/68360b4624efd1fb39fe0ccb/leave HTTP/1.1" 200 -
+2025-05-27 22:29:59,968 - app - INFO - Initializing model loader and pre-downloading models...
+2025-05-27 22:29:59,968 - utils.model_loader - INFO - Initializing ModelLoader...
+2025-05-27 22:30:00,255 - utils.model_loader - INFO - Pre-downloading ChromaDB embedding model...
+2025-05-27 22:30:00,255 - utils.model_loader - INFO - Downloading essential model files for sentence-transformers/all-MiniLM-L6-v2
+2025-05-27 22:30:01,093 - utils.model_loader - INFO - Essential model files download complete
+2025-05-27 22:30:01,093 - utils.model_loader - INFO - ModelLoader initialization complete
+2025-05-27 22:30:01,093 - app - INFO - Model initialization complete
+2025-05-27 22:30:01,178 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-05-27 22:30:01,178 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-05-27 22:31:01,283 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 22:31:01] "[33mDELETE /api/users/683610a1188e3fd04aa64703 HTTP/1.1[0m" 404 -
+2025-05-27 22:31:03,370 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 22:31:03] "[35m[1mPOST /api/users/ HTTP/1.1[0m" 500 -
+2025-05-27 22:31:57,343 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 22:31:57] "DELETE /api/users/68361182188e3fd04aa6470a HTTP/1.1" 200 -
+2025-05-27 22:31:59,490 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 22:31:59] "[35m[1mPOST /api/users/ HTTP/1.1[0m" 201 -
+2025-05-27 22:32:01,569 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 22:32:01] "GET /api/users/6836132f069cae6c651ba492 HTTP/1.1" 200 -

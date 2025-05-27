@@ -21,8 +21,6 @@ COLLECTIONS = {
 
 # API Configuration
 API_CONFIG = {
-    'host': os.getenv('HOST', '0.0.0.0'),  # Use 0.0.0.0 to accept connections from any IP
-    'port': int(os.getenv('PORT', 5000)),
     'debug': os.getenv('FLASK_DEBUG', 'False').lower() == 'true',
     'base_url': os.getenv('BASE_URL', 'http://localhost:5000'),  # Add base URL for API endpoints
     'cors_origins': os.getenv('CORS_ORIGINS', '*').split(',')  # Allow multiple origins

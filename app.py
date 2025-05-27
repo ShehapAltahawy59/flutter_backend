@@ -82,8 +82,4 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(
-        host=API_CONFIG['host'],
-        port=API_CONFIG['port'],
-        debug=API_CONFIG['debug']
-    )
+    app.run(debug=True)
