@@ -1529,3 +1529,13 @@ bson.errors.InvalidId: 'test_user_id' is not a valid ObjectId, it must be a 12-b
 2025-05-27 20:25:38,484 - werkzeug - WARNING -  * Debugger is active!
 2025-05-27 20:25:38,514 - werkzeug - INFO -  * Debugger PIN: 261-926-778
 2025-05-27 20:26:13,276 - werkzeug - INFO -  * Detected change in 'd:\\flutter_backend\\app.py', reloading
+2025-05-27 20:26:15,335 - werkzeug - INFO -  * Restarting with stat
+2025-05-27 20:26:24,221 - __main__ - INFO - Initializing model loader and pre-downloading models...
+2025-05-27 20:26:24,221 - utils.model_loader - INFO - Initializing ModelLoader...
+2025-05-27 20:26:24,447 - utils.model_loader - INFO - Pre-downloading ChromaDB embedding model...
+2025-05-27 20:26:24,448 - utils.model_loader - INFO - Downloading essential model files for sentence-transformers/all-MiniLM-L6-v2
+2025-05-27 20:26:25,004 - utils.model_loader - INFO - Essential model files download complete
+2025-05-27 20:26:25,004 - utils.model_loader - INFO - ModelLoader initialization complete
+2025-05-27 20:26:25,005 - __main__ - INFO - Model initialization complete
+2025-05-27 20:26:25,056 - werkzeug - WARNING -  * Debugger is active!
+2025-05-27 20:26:25,073 - werkzeug - INFO -  * Debugger PIN: 261-926-778
