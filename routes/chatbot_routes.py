@@ -40,7 +40,7 @@ def start_session():
             'error': str(e)
         }), 500
 
-@fitness_bp.route('/profile', methods=['POST'])
+@fitness_bp.route('/profile', methods=['POST', 'PUT'])
 def create_profile():
     """Create or update user fitness profile"""
     
@@ -52,7 +52,38 @@ def create_profile():
         if not data:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
         
-        # Required fields validation
+        # Get trainer
+        trainer = get_or_create_trainer(session['fitness_session_id'])
+        
+        # For PUT requests, only update provided fields
+        if request.method == 'PUT':
+            if not hasattr(trainer, 'user_profile'):
+                return jsonify({'success': False, 'error': 'Profile not found'}), 404
+                
+            # Update only provided fields
+            for key, value in data.items():
+                if key in trainer.user_profile:
+                    if key in ['age']:
+                        trainer.user_profile[key] = int(value)
+                    elif key in ['weight', 'height']:
+                        trainer.user_profile[key] = float(value)
+                    else:
+                        trainer.user_profile[key] = value
+            
+            # Recalculate BMI if weight or height changed
+            if 'weight' in data or 'height' in data:
+                trainer.user_profile['bmi'] = round(
+                    float(trainer.user_profile['weight']) / 
+                    (float(trainer.user_profile['height'])/100)**2, 1
+                )
+                
+            return jsonify({
+                'success': True,
+                'profile': trainer.user_profile,
+                'message': 'Profile updated successfully'
+            })
+        
+        # For POST requests, validate required fields
         required = ['name', 'age', 'weight', 'height', 'fitness_goal', 'experience']
         missing = [field for field in required if field not in data]
         if missing:
@@ -60,9 +91,6 @@ def create_profile():
                 'success': False,
                 'error': f'Missing required fields: {missing}'
             }), 400
-        
-        # Get trainer (this might be slow if it involves DB/API calls)
-        trainer = get_or_create_trainer(session['fitness_session_id'])
         
         # Set up profile quickly
         trainer.user_profile = {
@@ -77,42 +105,26 @@ def create_profile():
             'bmi': round(float(data['weight']) / (float(data['height'])/100)**2, 1)
         }
         
-        # OPTION 1: Initialize memory manager asynchronously (recommended)
-        # This prevents blocking the response
-        def init_memory_async():
-            try:
-                trainer.memory_manager = FitnessMemoryManager(trainer.client, trainer.user_profile)
-            except Exception as e:
-                print(f"Error initializing memory manager: {e}")
+        # Initialize memory manager synchronously
+        try:
+            print(f"Initializing memory manager for user {data['name']}...")
+            trainer.memory_manager = FitnessMemoryManager(trainer.client, trainer.user_profile)
+            memory_initialized = True
+            print("Memory manager initialized successfully")
+        except Exception as e:
+            print(f"Error initializing memory manager: {str(e)}")
+            print(f"Error type: {type(e).__name__}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
+            memory_initialized = False
         
-        # Run in background thread
-        import threading
-        thread = threading.Thread(target=init_memory_async)
-        thread.daemon = True
-        thread.start()
-        
-        # Return immediately
         return jsonify({
             'success': True,
             'profile': trainer.user_profile,
-            'message': 'Profile created. AI trainer is initializing...'
+            'memory_initialized': memory_initialized,
+            'message': 'Profile created' + (' and memory initialized' if memory_initialized else '. Memory initialization failed.'),
+            'error': str(e) if not memory_initialized else None
         })
-        
-        # OPTION 2: Initialize with timeout (alternative approach)
-        # import signal
-        # def timeout_handler(signum, frame):
-        #     raise TimeoutError("Memory manager initialization timed out")
-        # 
-        # signal.signal(signal.SIGALRM, timeout_handler)
-        # signal.alarm(5)  # 5 second timeout
-        # 
-        # try:
-        #     trainer.memory_manager = FitnessMemoryManager(trainer.client, trainer.user_profile)
-        #     signal.alarm(0)  # Cancel timeout
-        # except TimeoutError:
-        #     print("Memory manager initialization timed out - will retry later")
-        # except Exception as e:
-        #     print(f"Error initializing memory manager: {e}")
         
     except ValueError as e:
         return jsonify({
@@ -125,7 +137,53 @@ def create_profile():
             'success': False,
             'error': 'Internal server error'
         }), 500
+
+@fitness_bp.route('/profile/status', methods=['GET'])
+def profile_status():
+    """Check profile and memory initialization status"""
+    try:
+        if 'fitness_session_id' not in session:
+            return jsonify({'success': False, 'error': 'No active session'}), 400
         
+        trainer = get_or_create_trainer(session['fitness_session_id'])
+        
+        if not hasattr(trainer, 'user_profile'):
+            return jsonify({
+                'success': False,
+                'error': 'Profile not created'
+            }), 404
+        
+        # Try to initialize memory if not already initialized
+        if not hasattr(trainer, 'memory_manager'):
+            try:
+                print(f"Attempting to initialize memory manager for user {trainer.user_profile.get('name', 'unknown')}...")
+                trainer.memory_manager = FitnessMemoryManager(trainer.client, trainer.user_profile)
+                memory_initialized = True
+                print("Memory manager initialized successfully")
+            except Exception as e:
+                print(f"Error initializing memory manager: {str(e)}")
+                print(f"Error type: {type(e).__name__}")
+                import traceback
+                print(f"Traceback: {traceback.format_exc()}")
+                memory_initialized = False
+                error_message = str(e)
+        else:
+            memory_initialized = True
+            error_message = None
+        
+        return jsonify({
+            'success': True,
+            'profile': trainer.user_profile,
+            'memory_initialized': memory_initialized,
+            'error': error_message
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @fitness_bp.route('/chat', methods=['POST'])
 def chat():
     """Handle chat with fitness AI"""
@@ -144,21 +202,34 @@ def chat():
         
         trainer = get_or_create_trainer(session['fitness_session_id'])
         
+        # Check if memory manager exists and is ready
         if not hasattr(trainer, 'memory_manager'):
+            # Try to initialize memory manager if it doesn't exist
+            try:
+                trainer.memory_manager = FitnessMemoryManager(trainer.client, trainer.user_profile)
+            except Exception as e:
+                print(f"Error initializing memory manager: {e}")
+                return jsonify({
+                    'success': False,
+                    'error': 'AI trainer is still initializing. Please try again in a few seconds.'
+                }), 503  # Service Unavailable
+        
+        try:
+            response = trainer.get_ai_response(message)
+            return jsonify({
+                'success': True,
+                'response': response,
+                'timestamp': datetime.now().isoformat()
+            })
+        except Exception as e:
+            print(f"Error getting AI response: {e}")
             return jsonify({
                 'success': False,
-                'error': 'Profile not set up'
-            }), 400
-        
-        response = trainer.get_ai_response(message)
-        
-        return jsonify({
-            'success': True,
-            'response': response,
-            'timestamp': datetime.now().isoformat()
-        })
+                'error': 'AI trainer is having trouble processing your request. Please try again.'
+            }), 503
         
     except Exception as e:
+        print(f"Error in chat endpoint: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -259,3 +330,12 @@ def session_status():
             'success': False,
             'error': str(e)
         }), 500
+
+# Add a simple status check endpoint
+@fitness_bp.route('/status', methods=['GET'])
+def status():
+    """Simple status check endpoint"""
+    return jsonify({
+        'success': True,
+        'message': 'Fitness API is running'
+    })

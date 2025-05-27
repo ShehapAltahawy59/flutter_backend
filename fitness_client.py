@@ -3,47 +3,51 @@ import json
 from typing import Dict, Any, Optional
 from time import sleep
 from urllib.parse import urljoin
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 class FitnessAPIClient:
-    def __init__(self, base_url: str = "https://flutter-backend-dcqs.onrender.com"):
+    def __init__(self, base_url: str = "http://localhost:5000"):
         self.base_url = base_url
         self.session = requests.Session()
+        
+        # Configure retry strategy
+        retry_strategy = Retry(
+            total=2,  # reduced number of retries
+            backoff_factor=0.3,  # shorter backoff
+            status_forcelist=[429, 500, 502, 503, 504],
+        )
+        
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
+        
         self.session.headers.update({
             "Content-Type": "application/json",
             "Accept": "application/json"
         })
     
-    def _make_request(self, method: str, endpoint: str, payload: Optional[Dict] = None, retries: int = 3) -> Dict[str, Any]:
-        """Helper method to handle all API requests with retry logic"""
+    def _make_request(self, method: str, endpoint: str, payload: Optional[Dict] = None) -> Dict[str, Any]:
+        """Helper method to handle all API requests with optimized retry logic"""
         url = urljoin(self.base_url, endpoint)
         
-        for attempt in range(retries):
-            try:
-                response = self.session.request(
-                    method,
-                    url,
-                    json=payload,
-                    timeout=10  # 10 seconds timeout
-                )
-                
-                # Handle 429 Too Many Requests
-                if response.status_code == 429:
-                    retry_after = int(response.headers.get('Retry-After', 5))
-                    if attempt < retries - 1:
-                        sleep(retry_after)
-                        continue
-                
-                response.raise_for_status()
-                return response.json()
-                
-            except requests.exceptions.RequestException as e:
-                if attempt == retries - 1:
-                    return {
-                        "success": False,
-                        "error": str(e),
-                        "status_code": getattr(e.response, 'status_code', 500)
-                    }
-                sleep(1 * (attempt + 1))  # Exponential backoff
+        try:
+            response = self.session.request(
+                method,
+                url,
+                json=payload,
+                timeout=(5, 15)  # (connect timeout, read timeout) - increased timeouts
+            )
+            
+            response.raise_for_status()
+            return response.json()
+            
+        except requests.exceptions.RequestException as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "status_code": getattr(e.response, 'status_code', 500) if hasattr(e, 'response') else 500
+            }
     
     def start_session(self) -> Dict[str, Any]:
         """Start a new fitness training session"""
@@ -69,6 +73,10 @@ class FitnessAPIClient:
         """Update user profile"""
         return self._make_request("PUT", "/api/fitness/profile", updates)
     
+    def get_profile_status(self) -> Dict[str, Any]:
+        """Get profile and memory initialization status"""
+        return self._make_request("GET", "/api/fitness/profile")
+    
     def chat(self, message: str) -> Dict[str, Any]:
         """Send message to fitness AI"""
         if not message or not isinstance(message, str):
@@ -77,7 +85,45 @@ class FitnessAPIClient:
                 "error": "Message must be a non-empty string"
             }
         
-        return self._make_request("POST", "/api/fitness/chat", {"message": message.strip()})
+        # Check profile status first
+        status = self.get_profile_status()
+        if not status.get('success'):
+            return status
+        
+        if not status.get('memory_initialized'):
+            return {
+                "success": False,
+                "error": "AI trainer is not ready. Please try again in a few seconds."
+            }
+        
+        # Try up to 3 times with increasing delays
+        for attempt in range(3):
+            try:
+                response = self._make_request("POST", "/api/fitness/chat", {"message": message.strip()})
+                if response.get('success'):
+                    return response
+                
+                # If we get a 503, wait and retry
+                if response.get('status_code') == 503:
+                    if attempt < 2:  # Don't sleep on the last attempt
+                        sleep(2 * (attempt + 1))  # Exponential backoff: 2s, 4s
+                        continue
+                
+                return response
+                
+            except Exception as e:
+                if attempt == 2:  # Last attempt
+                    return {
+                        "success": False,
+                        "error": str(e),
+                        "status_code": getattr(e.response, 'status_code', 500) if hasattr(e, 'response') else 500
+                    }
+                sleep(2 * (attempt + 1))
+        
+        return {
+            "success": False,
+            "error": "Failed to get response after multiple attempts"
+        }
     
     def generate_workout(self, 
                        workout_type: str = "general", 
@@ -128,16 +174,33 @@ if __name__ == "__main__":
             raise Exception(f"Failed to create profile: {profile.get('error')}")
         print("Profile created:", profile)
         
+        # Wait for memory initialization
+        print("Waiting for AI trainer to initialize...")
+        max_attempts = 5
+        for attempt in range(max_attempts):
+            status = client.get_profile_status()
+            if status.get('success') and status.get('memory_initialized'):
+                print("AI trainer is ready!")
+                break
+            if attempt < max_attempts - 1:
+                error_msg = status.get('error', 'Unknown error')
+                print(f"AI trainer is still initializing... (attempt {attempt + 1}/{max_attempts})")
+                print(f"Error: {error_msg}")
+                sleep(3)
+            else:
+                error_msg = status.get('error', 'Unknown error')
+                raise Exception(f"AI trainer failed to initialize after multiple attempts. Last error: {error_msg}")
+        
         # 3. Get workout recommendation
-        print("\nGenerating workout...")
-        workout = client.generate_workout(
-            workout_type="strength",
-            duration=45,
-            intensity="high"
-        )
-        if not workout.get('success'):
-            raise Exception(f"Failed to generate workout: {workout.get('error')}")
-        print("Workout plan:", json.dumps(workout, indent=2))
+        # print("\nGenerating workout...")
+        # workout = client.generate_workout(
+        #     workout_type="strength",
+        #     duration=45,
+        #     intensity="high"
+        # )
+        # if not workout.get('success'):
+        #     raise Exception(f"Failed to generate workout: {workout.get('error')}")
+        # print("Workout plan:", json.dumps(workout, indent=2))
         
         # 4. Chat with fitness AI
         print("\nChatting with AI...")
