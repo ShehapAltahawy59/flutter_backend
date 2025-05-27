@@ -1,1 +1,95 @@
- 
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# MongoDB Configuration
+MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017')
+DB_NAME = os.getenv('MONGO_DBNAME', 'flutter_project')
+
+# Collection Names
+COLLECTIONS = {
+    'users': 'users',
+    'families': 'families',
+    'events': 'events',
+    'sos_alerts': 'sos_alerts',
+    'fitness_data': 'fitness_data',
+    'notifications': 'notifications',
+    'chat_history': 'chat_history'
+}
+
+# API Configuration
+API_CONFIG = {
+    'host': os.getenv('API_HOST', '0.0.0.0'),
+    'port': int(os.getenv('API_PORT', 5000)),
+    'debug': os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+}
+
+# Security Configuration
+SECURITY = {
+    'jwt_secret': os.getenv('JWT_SECRET', 'your-secret-key'),
+    'jwt_expiration': int(os.getenv('JWT_EXPIRATION', 86400)),  # 24 hours
+    'password_salt': os.getenv('PASSWORD_SALT', 'your-salt')
+}
+
+# Feature Flags
+FEATURES = {
+    'enable_location_tracking': True,
+    'enable_fitness_tracking': True,
+    'enable_sos_alerts': True,
+    'enable_family_events': True,
+    'enable_notifications': True
+}
+
+# Notification Settings
+NOTIFICATION_SETTINGS = {
+    'email_enabled': True,
+    'push_enabled': True,
+    'sms_enabled': False,
+    'default_notification_types': ['events', 'sos_alerts', 'reminders']
+}
+
+# Location Settings
+LOCATION_SETTINGS = {
+    'update_interval': 300,  # 5 minutes
+    'accuracy_threshold': 100,  # meters
+    'max_history_days': 30
+}
+
+# Event Settings
+EVENT_SETTINGS = {
+    'max_participants': 50,
+    'reminder_times': [3600, 1800, 300],  # 1 hour, 30 minutes, 5 minutes
+    'max_recurring_events': 52  # 1 year of weekly events
+}
+
+# SOS Alert Settings
+SOS_SETTINGS = {
+    'max_active_alerts': 3,
+    'alert_timeout': 3600,  # 1 hour
+    'notification_retry_interval': 300  # 5 minutes
+}
+
+# Fitness Settings
+FITNESS_SETTINGS = {
+    'workout_types': ['running', 'walking', 'cycling', 'swimming', 'gym'],
+    'max_history_days': 365,
+    'goal_types': ['steps', 'distance', 'calories', 'duration']
+}
+
+# Cache Settings
+CACHE_SETTINGS = {
+    'enabled': True,
+    'type': 'redis',
+    'host': os.getenv('REDIS_HOST', 'localhost'),
+    'port': int(os.getenv('REDIS_PORT', 6379)),
+    'ttl': 3600  # 1 hour
+}
+
+# Logging Configuration
+LOGGING = {
+    'level': os.getenv('LOG_LEVEL', 'INFO'),
+    'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    'file': 'app.log'
+} 
