@@ -5,7 +5,7 @@ from typing import Dict, Any, Optional
 import time
 
 class EmergencyAPIClient:
-    def __init__(self, base_url: str = "http://localhost:5000"):
+    def __init__(self, base_url: str = "https://flutter-backend-dcqs.onrender.com"):
         self.base_url = base_url
         self.session = requests.Session()
         self.session.headers.update({
@@ -74,7 +74,7 @@ class EmergencyAPIClient:
 
 def test_emergency_system():
     """Test the emergency system endpoints"""
-    client = EmergencyAPIClient("http://localhost:5000")
+    client = EmergencyAPIClient("https://flutter-backend-dcqs.onrender.com")
     
     print("\n=== Testing Emergency System ===\n")
     

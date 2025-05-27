@@ -2,18 +2,19 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_session import Session
 from routes.workout_routes import workout_bp
-from routes.user_routes import user_bp  # Import the new user blueprint
+from routes.user_routes import user_bp
 from routes.event_routes import event_bp
 from routes.emergency_routes import emergency_bp
 from routes.family_routes import family_bp
-from routes.chatbot_routes import fitness_bp  # Import fitness trainer blueprint
+from routes.chatbot_routes import fitness_bp
 import os
 from dotenv import load_dotenv
 from utils.model_loader import ModelLoader
 from utils.db import DatabaseConnection
 import logging
-from config import API_CONFIG, LOGGING
+from config import API_CONFIG, LOGGING, SECURITY_CONFIG
 
+# Load environment variables
 load_dotenv()
 
 # Configure logging
@@ -30,15 +31,16 @@ def create_app():
     # Configure CORS to allow all origins
     CORS(app, resources={
         r"/api/*": {
-            "origins": "*",  # Allow all origins
+            "origins": "*",
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization"]
         }
     })
     
     # Configure session
-    app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'dev_key_please_change')
-    app.config['SESSION_TYPE'] = 'filesystem'
+    app.config['SECRET_KEY'] = SECURITY_CONFIG['secret_key']
+    app.config['SESSION_TYPE'] = SECURITY_CONFIG['session_type']
+    app.config['PERMANENT_SESSION_LIFETIME'] = SECURITY_CONFIG['session_lifetime']
     Session(app)
     
     # Initialize database connection
@@ -68,7 +70,7 @@ def create_app():
         return jsonify({
             "status": "healthy",
             "version": "2",
-            "environment": ""
+            "environment": os.getenv('FLASK_ENV', 'development')
         }), 200
     
     # Enable CORS
@@ -86,5 +88,5 @@ if __name__ == '__main__':
     app.run(
         host=API_CONFIG['host'],
         port=API_CONFIG['port'],
-        debug=True
+        debug=API_CONFIG['debug']
     )

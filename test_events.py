@@ -7,7 +7,7 @@ from pymongo import MongoClient
 from config import MONGODB_URI, DB_NAME, COLLECTIONS
 
 class EventAPIClient:
-    def __init__(self, base_url: str = "http://localhost:5000"):
+    def __init__(self, base_url: str = "https://flutter-backend-dcqs.onrender.com/"):
         self.base_url = base_url
         self.session = requests.Session()
         self.session.headers.update({

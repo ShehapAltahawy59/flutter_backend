@@ -1585,3 +1585,13 @@ bson.errors.InvalidId: 'test_user_id' is not a valid ObjectId, it must be a 12-b
 2025-05-27 20:43:12,691 - __main__ - INFO - Model initialization complete
 2025-05-27 20:43:13,184 - werkzeug - WARNING -  * Debugger is active!
 2025-05-27 20:43:13,211 - werkzeug - INFO -  * Debugger PIN: 261-926-778
+2025-05-27 20:46:26,349 - app - INFO - Initializing model loader and pre-downloading models...
+2025-05-27 20:46:26,349 - utils.model_loader - INFO - Initializing ModelLoader...
+2025-05-27 20:46:26,599 - utils.model_loader - INFO - Pre-downloading ChromaDB embedding model...
+2025-05-27 20:46:26,600 - utils.model_loader - INFO - Downloading essential model files for sentence-transformers/all-MiniLM-L6-v2
+2025-05-27 20:46:27,452 - utils.model_loader - INFO - Essential model files download complete
+2025-05-27 20:46:27,452 - utils.model_loader - INFO - ModelLoader initialization complete
+2025-05-27 20:46:27,453 - app - INFO - Model initialization complete
+2025-05-27 20:46:27,543 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-05-27 20:46:27,544 - werkzeug - INFO - [33mPress CTRL+C to quit[0m

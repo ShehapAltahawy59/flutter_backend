@@ -21,8 +21,8 @@ COLLECTIONS = {
 
 # API Configuration
 API_CONFIG = {
-    'host': os.getenv('API_HOST', '0.0.0.0'),
-    'port': int(os.getenv('API_PORT', 5000)),
+    'host': os.getenv('HOST', '0.0.0.0'),  # Use 0.0.0.0 to accept connections from any IP
+    'port': int(os.getenv('PORT', 5000)),
     'debug': os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
 }
 
@@ -91,5 +91,21 @@ CACHE_SETTINGS = {
 LOGGING = {
     'level': os.getenv('LOG_LEVEL', 'INFO'),
     'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    'file': 'app.log'
+    'file': os.getenv('LOG_FILE', 'app.log')
+}
+
+# Database Configuration
+DB_CONFIG = {
+    'host': os.getenv('DB_HOST', 'localhost'),
+    'port': int(os.getenv('DB_PORT', 5432)),
+    'database': os.getenv('DB_NAME', 'fitness_db'),
+    'user': os.getenv('DB_USER', 'postgres'),
+    'password': os.getenv('DB_PASSWORD', '')
+}
+
+# Security Configuration
+SECURITY_CONFIG = {
+    'secret_key': os.getenv('FLASK_SECRET_KEY', 'dev_key_please_change'),
+    'session_type': 'filesystem',
+    'session_lifetime': 3600  # 1 hour in seconds
 } 
