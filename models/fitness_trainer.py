@@ -1,21 +1,24 @@
 import os
+from typing import Dict, Any, List, Optional
 from groq import Groq
 import json
 from datetime import datetime
-from typing import Dict, Any, List, Optional
 import re
 
 # LangChain imports
 from langchain.memory import ConversationSummaryBufferMemory, VectorStoreRetrieverMemory
 from langchain.schema.messages import HumanMessage, AIMessage
 from langchain.vectorstores import Chroma
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.llms.base import LLM
 from langchain.callbacks.manager import CallbackManagerForLLMRun
 from langchain.schema import BaseRetriever, Document
 from pydantic import Field
 import chromadb
+from chromadb.config import Settings
+from chromadb.utils import embedding_functions
+from langchain.memory import ConversationBufferMemory
 
 # Custom Groq LLM wrapper for LangChain - FIXED VERSION
 class GroqLLM(LLM):
@@ -54,48 +57,181 @@ class GroqLLM(LLM):
             return f"Error: {str(e)}"
 
 class FitnessMemoryManager:
-    """Enhanced memory management using LangChain components"""
-
-    def __init__(self, groq_client, user_profile: Dict):
-        self.groq_client = groq_client
-        self.user_profile = user_profile
-
-        # Initialize LangChain LLM wrapper
-        self.llm = GroqLLM(groq_client)
-
-        # Initialize embeddings for vector storage
-        self.embeddings = HuggingFaceEmbeddings(
-            model_name="sentence-transformers/all-MiniLM-L6-v2",
-            model_kwargs={'device': 'cpu'}
-        )
-
-        # Initialize vector store for long-term memory (fitness-specific memories)
-        self.chroma_client = chromadb.Client()
-        self.vector_store = Chroma(
-            client=self.chroma_client,
-            collection_name=f"fitness_memories_{user_profile.get('name', 'user')}",
-            embedding_function=self.embeddings
-        )
-
-        # Conversation buffer with summary for recent chat
-        self.conversation_memory = ConversationSummaryBufferMemory(
-            llm=self.llm,
-            max_token_limit=2000,  # Adjust based on your needs
-            return_messages=True,
-            memory_key="chat_history"
-        )
-
-        # Vector memory for retrieving relevant past conversations
-        self.vector_memory = VectorStoreRetrieverMemory(
-            retriever=self.vector_store.as_retriever(search_kwargs={"k": 5}),
-            memory_key="fitness_context"
-        )
-
-        # Fitness-specific memory categories
-        self.workout_plans = []
-        self.progress_tracking = []
-        self.preferences = {}
-        self.limitations_updates = []
+    def __init__(self, client, user_profile):
+        """Initialize memory manager with user profile"""
+        try:
+            print("\nInitializing FitnessMemoryManager...")
+            self.client = client
+            self.user_profile = user_profile
+            self.collection_name = f"fitness_memories_{user_profile['name'].replace(' ', '_')}"
+            
+            # Initialize conversation memory
+            self.conversation_memory = ConversationBufferMemory(
+                memory_key="chat_history",
+                return_messages=True
+            )
+            
+            # Initialize embeddings
+            self.embeddings = HuggingFaceEmbeddings(
+                model_name="sentence-transformers/all-MiniLM-L6-v2"
+            )
+            
+            # Initialize ChromaDB client with basic settings
+            print(f"Creating ChromaDB collection: {self.collection_name}")
+            
+            # Create a unique persistent path for this user
+            persist_directory = os.path.join("chroma_db", self.collection_name)
+            os.makedirs(persist_directory, exist_ok=True)
+            
+            settings = Settings(
+                anonymized_telemetry=False,
+                allow_reset=True,
+                is_persistent=True,
+                persist_directory=persist_directory
+            )
+            self.chroma_client = chromadb.PersistentClient(path=persist_directory)
+            
+            # Create or get collection with embedding model
+            try:
+                # First try to get existing collection
+                self.collection = self.chroma_client.get_collection(
+                    name=self.collection_name,
+                    embedding_function=chromadb.utils.embedding_functions.SentenceTransformerEmbeddingFunction(
+                        model_name="sentence-transformers/all-MiniLM-L6-v2"
+                    )
+                )
+                print(f"Retrieved existing collection: {self.collection_name}")
+            except Exception as e:
+                print(f"Creating new collection: {self.collection_name}")
+                # Create new collection with embedding model
+                self.collection = self.chroma_client.create_collection(
+                    name=self.collection_name,
+                    metadata={
+                        "user_name": user_profile['name'],
+                        "fitness_goal": user_profile['fitness_goal'],
+                        "experience": user_profile['experience']
+                    },
+                    embedding_function=chromadb.utils.embedding_functions.SentenceTransformerEmbeddingFunction(
+                        model_name="sentence-transformers/all-MiniLM-L6-v2"
+                    )
+                )
+                print("New collection created successfully")
+            
+            # Initialize vector store
+            self.vector_store = Chroma(
+                client=self.chroma_client,
+                collection_name=self.collection_name,
+                embedding_function=self.embeddings
+            )
+            
+            # Initialize vector memory
+            self.vector_memory = VectorStoreRetrieverMemory(
+                retriever=self.vector_store.as_retriever(
+                    search_kwargs={"k": 3}
+                ),
+                memory_key="vector_memory"
+            )
+            
+            # Initialize with user profile
+            self._initialize_memory()
+            print("Memory manager initialized successfully")
+            
+        except Exception as e:
+            print(f"Error initializing memory manager: {str(e)}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
+            raise
+    
+    def _initialize_memory(self):
+        """Initialize memory with user profile and basic fitness knowledge"""
+        try:
+            # Add user profile to memory
+            profile_text = f"""
+            User Profile:
+            Name: {self.user_profile['name']}
+            Age: {self.user_profile['age']}
+            Weight: {self.user_profile['weight']} kg
+            Height: {self.user_profile['height']} cm
+            BMI: {self.user_profile['bmi']}
+            Fitness Goal: {self.user_profile['fitness_goal']}
+            Experience Level: {self.user_profile['experience']}
+            Available Equipment: {self.user_profile['equipment']}
+            Limitations: {self.user_profile['limitations']}
+            """
+            
+            # Add profile to collection
+            self.collection.add(
+                documents=[profile_text],
+                metadatas=[{
+                    "type": "user_profile",
+                    "timestamp": datetime.now().isoformat(),
+                    "user_name": self.user_profile['name']
+                }],
+                ids=["user_profile"]
+            )
+            print("User profile added to memory")
+            
+            # Initialize conversation memory with initial context
+            self.conversation_memory = ConversationBufferMemory(
+                memory_key="chat_history",
+                return_messages=True
+            )
+            
+            # Add initial system message to conversation memory
+            self.conversation_memory.chat_memory.add_ai_message(
+                f"Hello {self.user_profile['name']}! I'm your AI fitness trainer. "
+                f"I see you're interested in {self.user_profile['fitness_goal']} and have "
+                f"{self.user_profile['experience']} experience level. How can I help you today?"
+            )
+            
+            # Initialize vector store with initial context
+            self.vector_store = Chroma(
+                client=self.chroma_client,
+                collection_name=self.collection_name,
+                embedding_function=self.embeddings
+            )
+            
+            # Initialize vector memory
+            self.vector_memory = VectorStoreRetrieverMemory(
+                retriever=self.vector_store.as_retriever(
+                    search_kwargs={"k": 3}
+                ),
+                memory_key="vector_memory"
+            )
+            
+            print("Memory components initialized successfully")
+            
+        except Exception as e:
+            print(f"Error initializing memory: {str(e)}")
+            raise
+    
+    def add_memory(self, text: str, memory_type: str = "general"):
+        """Add new memory to collection"""
+        try:
+            self.collection.add(
+                documents=[text],
+                metadatas=[{
+                    "type": memory_type,
+                    "timestamp": datetime.now().isoformat(),
+                    "user_name": self.user_profile['name']
+                }],
+                ids=[f"memory_{datetime.now().timestamp()}"]
+            )
+        except Exception as e:
+            print(f"Error adding memory: {str(e)}")
+            raise
+    
+    def get_relevant_memories(self, query: str, n_results: int = 5) -> List[str]:
+        """Get relevant memories for query"""
+        try:
+            results = self.collection.query(
+                query_texts=[query],
+                n_results=n_results
+            )
+            return results['documents'][0] if results['documents'] else []
+        except Exception as e:
+            print(f"Error querying memories: {str(e)}")
+            return []
 
     def add_conversation_turn(self, human_input: str, ai_response: str):
         """Add a conversation turn to memory systems"""
@@ -277,13 +413,24 @@ class FitnessMemoryManager:
             return {'error': str(e)}
 
 class FitnessAITrainer:
+    _instance = None
+    _profile = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(FitnessAITrainer, cls).__new__(cls)
+        return cls._instance
+
     def __init__(self, api_key):
         """Initialize the Groq client with API key and LangChain memory"""
-        self.client = Groq(api_key=api_key)
-        self.user_profile = {}
-        self.memory_manager = None
-        self.session_start_time = datetime.now()
-        self.loaded_from_save = False
+        if not hasattr(self, 'initialized'):
+            self.client = Groq(api_key=api_key)
+            self.user_profile = FitnessAITrainer._profile or {}
+            self.memory_manager = None
+            self.session_start_time = datetime.now()
+            self.loaded_from_save = False
+            self.initialized = True
+            print(f"Debug - Initialized FitnessAITrainer with profile: {self.user_profile}")
 
     def find_saved_sessions(self) -> List[str]:
         """Find all saved session files"""
@@ -392,70 +539,42 @@ class FitnessAITrainer:
         # If no session loaded, create new profile
         return self.create_new_profile()
 
-    def create_new_profile(self,data):
+    def create_new_profile(self, data):
         """Collect user fitness information"""
         print("Let's set up your fitness profile first.\n")
+        print(f"Debug - Received profile data: {data}")
 
         try:
-            # self.user_profile['name'] = input("What's your name? ").strip()
-            # self.user_profile['age'] = int(input("How old are you? "))
-            # self.user_profile['weight'] = float(input("What's your weight (kg)? "))
-            # self.user_profile['height'] = float(input("What's your height (cm)? "))
-
-            # print("\nFitness Goals:")
-            # print("1. Weight Loss")
-            # print("2. Muscle Gain")
-            # print("3. General Fitness")
-            # print("4. Strength Training")
-            # print("5. Endurance")
-            # goal_choice = input("Select your primary goal (1-5): ")
-            # goals = {
-            #     '1': 'Weight Loss',
-            #     '2': 'Muscle Gain',
-            #     '3': 'General Fitness',
-            #     '4': 'Strength Training',
-            #     '5': 'Endurance'
-            # }
-            # self.user_profile['fitness_goal'] = goals.get(goal_choice, 'General Fitness')
-
-            # print("\nExperience Level:")
-            # print("1. Beginner")
-            # print("2. Intermediate")
-            # print("3. Advanced")
-            # exp_choice = input("Select your experience level (1-3): ")
-            # experience_levels = {
-            #     '1': 'Beginner',
-            #     '2': 'Intermediate',
-            #     '3': 'Advanced'
-            # }
-            # self.user_profile['experience'] = experience_levels.get(exp_choice, 'Beginner')
-
-            # self.user_profile['equipment'] = input("What equipment do you have access to? (e.g., dumbbells, gym membership, bodyweight only): ").strip()
-
-            # self.user_profile['limitations'] = input("Any injuries or physical limitations? (optional): ").strip()
-            self.user_profile = data
+            # Store the profile data in both instance and class
+            self.user_profile = data.copy()
+            FitnessAITrainer._profile = data.copy()
+            
             # Calculate BMI
             height_m = self.user_profile['height'] / 100
             bmi = self.user_profile['weight'] / (height_m ** 2)
             self.user_profile['bmi'] = round(bmi, 1)
+            FitnessAITrainer._profile['bmi'] = round(bmi, 1)
+
+            print(f"\nDebug - Stored Profile: {self.user_profile}")
 
             # Initialize memory manager with user profile
             self.memory_manager = FitnessMemoryManager(self.client, self.user_profile)
 
             print(f"\n✅ Profile created successfully!")
             self.display_profile()
+            return True
 
-        except ValueError:
-            print("❌ Invalid input. Please enter valid numbers for age, weight, and height.")
+        except ValueError as e:
+            print(f"❌ Invalid input: {str(e)}")
             return False
         except KeyboardInterrupt:
             print("\n👋 Goodbye!")
             return False
         except Exception as e:
             print(f"❌ Error setting up profile: {str(e)}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
             return False
-
-        return True
 
     def display_profile(self):
         """Display current user profile"""
@@ -523,9 +642,31 @@ Remember: You have access to both recent conversation history and semantically r
     def get_ai_response(self, user_message):
         """Get response from Groq AI using LangChain memory"""
         try:
-            if not self.memory_manager:
-                return "❌ Memory system not initialized. Please restart the application."
-
+            # Debug logging
+            print(f"\nDebug - User Profile in get_ai_response: {self.user_profile}")
+            print(f"Debug - Class Profile: {FitnessAITrainer._profile}")
+            
+            # Try to recover profile from class variable if instance profile is empty
+            if not self.user_profile and FitnessAITrainer._profile:
+                print("Recovering profile from class variable...")
+                self.user_profile = FitnessAITrainer._profile.copy()
+            
+            # Verify user profile exists and has required fields
+            if not self.user_profile or not isinstance(self.user_profile, dict):
+                print("Error: User profile is not a dictionary or is None")
+                raise ValueError("User profile not properly initialized")
+            
+            required_fields = ['name', 'age', 'weight', 'height', 'fitness_goal', 'experience', 'equipment', 'limitations']
+            missing_fields = [field for field in required_fields if field not in self.user_profile]
+            if missing_fields:
+                print(f"Error: Missing fields in profile: {missing_fields}")
+                raise ValueError(f"Missing required profile fields: {', '.join(missing_fields)}")
+            
+            # Check if memory manager exists and is properly initialized
+            if not hasattr(self, 'memory_manager') or self.memory_manager is None:
+                print("Initializing memory manager...")
+                self.memory_manager = FitnessMemoryManager(self.client, self.user_profile)
+            
             # Get relevant context from memory
             context = self.memory_manager.get_relevant_context(user_message)
 
@@ -541,7 +682,7 @@ Remember: You have access to both recent conversation history and semantically r
             # Get response from Groq
             response = self.client.chat.completions.create(
                 messages=messages,
-                model="llama-3.1-70b-versatile",
+                model="llama3-70b-8192",
                 temperature=0.7,
                 max_tokens=1500,
                 top_p=1,
@@ -555,7 +696,13 @@ Remember: You have access to both recent conversation history and semantically r
 
             return ai_response
 
+        except ValueError as ve:
+            print(f"Profile validation error: {str(ve)}")
+            return f"❌ Error: {str(ve)}. Please ensure your profile is properly set up."
         except Exception as e:
+            print(f"Error in get_ai_response: {str(e)}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
             return f"❌ Error getting AI response: {str(e)}"
 
     def save_session_data(self):
@@ -673,4 +820,58 @@ Remember: You have access to both recent conversation history and semantically r
                 break
             except Exception as e:
                 print(f"❌ An error occurred: {str(e)}")
+
+    def update_profile(self, new_data: Dict[str, Any]) -> bool:
+        """Update user profile with new data"""
+        try:
+            print("\n=== Updating Profile ===")
+            print(f"Current profile: {self.user_profile}")
+            print(f"New data: {new_data}")
+            
+            if not isinstance(new_data, dict):
+                print("Invalid data type for profile update")
+                return False
+                
+            if not self.user_profile:
+                print("No existing profile to update")
+                return False
+            
+            # Create a copy of current profile for safe update
+            updated_profile = self.user_profile.copy()
+            
+            # Update only the fields that are provided
+            for key, value in new_data.items():
+                if key in ['name', 'age', 'weight', 'height', 'fitness_goal', 
+                          'experience', 'equipment', 'limitations']:
+                    updated_profile[key] = value
+            
+            # Recalculate BMI if weight or height changed
+            if 'weight' in new_data or 'height' in new_data:
+                weight = updated_profile.get('weight', 0)
+                height = updated_profile.get('height', 0) / 100  # convert to meters
+                if weight and height:
+                    updated_profile['bmi'] = round(weight / (height * height), 1)
+                    print(f"BMI recalculated: {updated_profile['bmi']}")
+            
+            # Update both instance and class profile
+            self.user_profile = updated_profile
+            FitnessAITrainer.user_profile = updated_profile
+            
+            # Reinitialize memory manager with updated profile
+            if hasattr(self, 'memory_manager'):
+                try:
+                    self.memory_manager = FitnessMemoryManager(self.client, self.user_profile)
+                    print("Memory manager reinitialized with updated profile")
+                except Exception as e:
+                    print(f"Warning: Failed to reinitialize memory manager: {str(e)}")
+                    # Don't fail the update if memory manager reinitialization fails
+            
+            print("Profile updated successfully")
+            return True
+            
+        except Exception as e:
+            print(f"Error updating profile: {str(e)}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
+            return False
 

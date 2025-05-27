@@ -5,11 +5,17 @@ from time import sleep
 from urllib.parse import urljoin
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 class FitnessAPIClient:
     def __init__(self, base_url: str = "http://localhost:5000"):
         self.base_url = base_url
         self.session = requests.Session()
+        self.session_id = None
         
         # Configure retry strategy
         retry_strategy = Retry(
@@ -49,21 +55,65 @@ class FitnessAPIClient:
                 "status_code": getattr(e.response, 'status_code', 500) if hasattr(e, 'response') else 500
             }
     
-    def start_session(self) -> Dict[str, Any]:
+    def start_session(self) -> bool:
         """Start a new fitness training session"""
-        return self._make_request("POST", "/api/fitness/session/start")
+        try:
+            # Check for GROQ_API_KEY
+            groq_api_key = os.getenv("GROQ_API_KEY")
+            if not groq_api_key:
+                print("Error: GROQ_API_KEY not found in environment variables")
+                return False
+
+            response = self._make_request("POST", "/api/fitness/session/start")
+            if response.get('success'):
+                self.session_id = response.get('session_id')
+                print("Session started:", response)
+                return True
+            print(f"Failed to start session: {response.get('error', 'Unknown error')}")
+            return False
+        except Exception as e:
+            print(f"Error starting session: {str(e)}")
+            return False
     
-    def create_profile(self, profile_data: Dict[str, Any]) -> Dict[str, Any]:
+    def create_profile(self, profile_data: Dict[str, Any]) -> Dict[str, Any] | None:
         """Create user fitness profile"""
-        # Validate required fields
-        required_fields = ['name', 'age', 'weight', 'height', 'fitness_goal', 'experience']
-        if not all(field in profile_data for field in required_fields):
-            return {
-                "success": False,
-                "error": f"Missing required fields: {required_fields}"
+        try:
+            print("\nCreating profile...")
+            headers = {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
             }
-        
-        return self._make_request("POST", "/api/fitness/profile", profile_data)
+            response = requests.post(
+                f"{self.base_url}/api/fitness/profile",
+                json=profile_data,
+                headers=headers
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            if data.get('status') == 'success':
+                print("Profile created successfully!")
+                print("\nProfile details:")
+                profile = data.get('profile', {})
+                print(f"Name: {profile.get('name')}")
+                print(f"Age: {profile.get('age')}")
+                print(f"Weight: {profile.get('weight')} kg")
+                print(f"Height: {profile.get('height')} cm")
+                print(f"BMI: {profile.get('bmi')}")
+                print(f"Goal: {profile.get('fitness_goal')}")
+                print(f"Experience: {profile.get('experience')}")
+                print(f"Equipment: {profile.get('equipment')}")
+                print(f"Limitations: {profile.get('limitations')}")
+                return profile
+            else:
+                print(f"Failed to create profile: {data.get('message')}")
+                return None
+        except requests.exceptions.RequestException as e:
+            print(f"Error during API interaction: {str(e)}")
+            return None
+        except Exception as e:
+            print(f"Unexpected error: {str(e)}")
+            return None
     
     def get_profile(self) -> Dict[str, Any]:
         """Get current user profile"""
@@ -75,7 +125,50 @@ class FitnessAPIClient:
     
     def get_profile_status(self) -> Dict[str, Any]:
         """Get profile and memory initialization status"""
-        return self._make_request("GET", "/api/fitness/profile")
+        try:
+            print("\nChecking profile status...")
+            response = self._make_request("GET", "/api/fitness/profile/status")
+            
+            if not response:
+                print("No response received from server")
+                return {
+                    "success": False,
+                    "error": "No response from server"
+                }
+            
+            print(f"Status response: {response}")
+            
+            if not response.get('success'):
+                error_msg = response.get('error', 'Unknown error')
+                print(f"Profile status check failed: {error_msg}")
+                return {
+                    "success": False,
+                    "error": error_msg
+                }
+            
+            memory_initialized = response.get('memory_initialized', False)
+            if not memory_initialized:
+                error_msg = response.get('error', 'Memory initialization failed')
+                print(f"Memory not initialized: {error_msg}")
+                return {
+                    "success": False,
+                    "error": error_msg,
+                    "profile": response.get('profile')
+                }
+            
+            print("Profile status check successful")
+            return {
+                "success": True,
+                "profile": response.get('profile'),
+                "memory_initialized": True
+            }
+            
+        except Exception as e:
+            print(f"Error checking profile status: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
     
     def chat(self, message: str) -> Dict[str, Any]:
         """Send message to fitness AI"""
@@ -152,10 +245,8 @@ if __name__ == "__main__":
     try:
         # 1. Start a session
         print("Starting session...")
-        session = client.start_session()
-        if not session.get('success'):
-            raise Exception(f"Failed to start session: {session.get('error')}")
-        print("Session started:", session)
+        if not client.start_session():
+            raise Exception("Failed to start session")
         
         # 2. Create profile
         print("\nCreating profile...")
@@ -170,9 +261,8 @@ if __name__ == "__main__":
             "limitations": "bad knee"
         }
         profile = client.create_profile(profile_data)
-        if not profile.get('success'):
-            raise Exception(f"Failed to create profile: {profile.get('error')}")
-        print("Profile created:", profile)
+        if not profile:
+            raise Exception("Failed to create profile")
         
         # Wait for memory initialization
         print("Waiting for AI trainer to initialize...")
@@ -191,16 +281,16 @@ if __name__ == "__main__":
                 error_msg = status.get('error', 'Unknown error')
                 raise Exception(f"AI trainer failed to initialize after multiple attempts. Last error: {error_msg}")
         
-        # 3. Get workout recommendation
-        # print("\nGenerating workout...")
-        # workout = client.generate_workout(
-        #     workout_type="strength",
-        #     duration=45,
-        #     intensity="high"
-        # )
-        # if not workout.get('success'):
-        #     raise Exception(f"Failed to generate workout: {workout.get('error')}")
-        # print("Workout plan:", json.dumps(workout, indent=2))
+        #3. Get workout recommendation
+        print("\nGenerating workout...")
+        workout = client.generate_workout(
+            workout_type="strength",
+            duration=45,
+            intensity="high"
+        )
+        if not workout.get('success'):
+            raise Exception(f"Failed to generate workout: {workout.get('error')}")
+        print("Workout plan:", json.dumps(workout, indent=2))
         
         # 4. Chat with fitness AI
         print("\nChatting with AI...")

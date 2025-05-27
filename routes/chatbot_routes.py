@@ -5,13 +5,29 @@ import os
 from typing import Dict, Any
 from models.fitness_trainer import FitnessAITrainer, FitnessMemoryManager  # Import your FitnessAITrainer class
 
-fitness_bp = Blueprint('fitness', __name__)
+fitness_bp = Blueprint('fitness', __name__,url_prefix='/api/fitness')
 
 # Store active trainers in memory (in production, use Redis or database)
 active_trainers = {}
+trainer = None
 
 def get_or_create_trainer(session_id: str) -> FitnessAITrainer:
     """Get existing trainer or create new one for session"""
+    try:
+        if session_id not in active_trainers:
+            # Get API key from environment
+            api_key = os.getenv("GROQ_API_KEY")
+            if not api_key:
+                raise ValueError("GROQ_API_KEY not found in environment variables")
+            
+            print(f"Creating new trainer instance for session {session_id}")
+            active_trainers[session_id] = FitnessAITrainer(api_key=api_key)
+            print("Trainer instance created successfully")
+        
+        return active_trainers[session_id]
+    except Exception as e:
+        print(f"Error in get_or_create_trainer: {str(e)}")
+        import traceback
     if session_id not in active_trainers:
         # Initialize with your Groq API key
         active_trainers[session_id] = FitnessAITrainer(api_key=os.getenv("GROQ_API_KEY"))
@@ -21,12 +37,29 @@ def get_or_create_trainer(session_id: str) -> FitnessAITrainer:
 def start_session():
     """Start a new fitness training session"""
     try:
+        # Check for GROQ_API_KEY
+        groq_api_key = os.getenv("GROQ_API_KEY")
+        if not groq_api_key:
+            print("Error: GROQ_API_KEY not found in environment variables")
+            return jsonify({
+                'success': False,
+                'error': 'GROQ_API_KEY not configured. Please check your .env file.'
+            }), 500
+
         # Generate or get session ID
         if 'fitness_session_id' not in session:
             session['fitness_session_id'] = str(datetime.now().timestamp())
         
         # Initialize trainer
-        trainer = get_or_create_trainer(session['fitness_session_id'])
+        try:
+            trainer = get_or_create_trainer(session['fitness_session_id'])
+            print(f"Trainer initialized successfully for session {session['fitness_session_id']}")
+        except Exception as trainer_error:
+            print(f"Error initializing trainer: {str(trainer_error)}")
+            return jsonify({
+                'success': False,
+                'error': f'Failed to initialize trainer: {str(trainer_error)}'
+            }), 500
         
         return jsonify({
             'success': True,
@@ -35,119 +68,158 @@ def start_session():
         })
     
     except Exception as e:
+        print(f"Error in start_session: {str(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
 
-@fitness_bp.route('/profile', methods=['POST', 'PUT'])
+@fitness_bp.route('/profile', methods=['GET', 'POST', 'PUT'])
 def create_profile():
-    """Create or update user fitness profile"""
-    
+    global trainer
     try:
-        if 'fitness_session_id' not in session:
-            return jsonify({'success': False, 'error': 'No active session'}), 400
+        print("\n=== Profile Endpoint Called ===")
+        print(f"Method: {request.method}")
+        print(f"Headers: {dict(request.headers)}")
         
-        data = request.json
-        if not data:
-            return jsonify({'success': False, 'error': 'No data provided'}), 400
-        
-        # Get trainer
-        trainer = get_or_create_trainer(session['fitness_session_id'])
-        
-        # For PUT requests, only update provided fields
-        if request.method == 'PUT':
-            if not hasattr(trainer, 'user_profile'):
-                return jsonify({'success': False, 'error': 'Profile not found'}), 404
-                
-            # Update only provided fields
-            for key, value in data.items():
-                if key in trainer.user_profile:
-                    if key in ['age']:
-                        trainer.user_profile[key] = int(value)
-                    elif key in ['weight', 'height']:
-                        trainer.user_profile[key] = float(value)
-                    else:
-                        trainer.user_profile[key] = value
+        if request.method == 'POST':
+            print("\nProcessing POST request")
+            data = request.get_json()
+            print(f"Request data: {data}")
             
-            # Recalculate BMI if weight or height changed
-            if 'weight' in data or 'height' in data:
-                trainer.user_profile['bmi'] = round(
-                    float(trainer.user_profile['weight']) / 
-                    (float(trainer.user_profile['height'])/100)**2, 1
-                )
+            if not data:
+                print("No data received")
+                return jsonify({
+                    "status": "error",
+                    "message": "No data provided"
+                }), 400
                 
+            if not trainer:
+                print("Creating new trainer instance")
+                trainer = FitnessAITrainer(os.getenv('GROQ_API_KEY'))
+            
+            print("Creating profile...")
+            trainer.create_new_profile(data)
+            
+            if not trainer.user_profile:
+                print("Profile creation failed")
+                return jsonify({
+                    "status": "error",
+                    "message": "Profile creation failed"
+                }), 500
+                
+            print(f"Profile created: {trainer.user_profile}")
+            
+            response_data = {
+                "status": "success",
+                "message": "Profile created successfully",
+                "profile": trainer.user_profile
+            }
+            print(f"Sending response: {response_data}")
+            
+            response = jsonify(response_data)
+            response.headers['Content-Type'] = 'application/json'
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+            
+            print("Response headers set")
+            return response
+            
+        elif request.method == 'PUT':
+            print("\nProcessing PUT request")
+            if not trainer:
+                return jsonify({
+                    "success": False,
+                    "error": "No active trainer session"
+                }), 400
+                
+            data = request.get_json()
+            print(f"Update data received: {data}")
+            
+            if not data:
+                return jsonify({
+                    "success": False,
+                    "error": "No update data provided"
+                }), 400
+                
+            try:
+                # Update profile using the update_profile method
+                success = trainer.update_profile(data)
+                if not success:
+                    print("Profile update failed")
+                    return jsonify({
+                        "success": False,
+                        "error": "Failed to update profile"
+                    }), 500
+                
+                print("Profile updated successfully")
+                response = jsonify({
+                    "success": True,
+                    "message": "Profile updated successfully",
+                    "profile": trainer.user_profile
+                })
+                response.headers['Content-Type'] = 'application/json'
+                response.headers['Access-Control-Allow-Origin'] = '*'
+                return response
+                
+            except Exception as e:
+                print(f"Error updating profile: {str(e)}")
+                import traceback
+                print(f"Traceback: {traceback.format_exc()}")
+                return jsonify({
+                    "success": False,
+                    "error": f"Failed to update profile: {str(e)}"
+                }), 500
+            
+        elif request.method == 'GET':
+            print("\nProcessing GET request")
+            if trainer and trainer.user_profile:
+                print(f"Returning profile: {trainer.user_profile}")
+                response = jsonify(trainer.user_profile)
+                response.headers['Content-Type'] = 'application/json'
+                response.headers['Access-Control-Allow-Origin'] = '*'
+                return response
+                
+            print("No profile found")
             return jsonify({
-                'success': True,
-                'profile': trainer.user_profile,
-                'message': 'Profile updated successfully'
-            })
-        
-        # For POST requests, validate required fields
-        required = ['name', 'age', 'weight', 'height', 'fitness_goal', 'experience']
-        missing = [field for field in required if field not in data]
-        if missing:
-            return jsonify({
-                'success': False,
-                'error': f'Missing required fields: {missing}'
-            }), 400
-        
-        # Set up profile quickly
-        trainer.user_profile = {
-            'name': data['name'],
-            'age': int(data['age']),
-            'weight': float(data['weight']),
-            'height': float(data['height']),
-            'fitness_goal': data['fitness_goal'],
-            'experience': data['experience'],
-            'equipment': data.get('equipment', ''),
-            'limitations': data.get('limitations', ''),
-            'bmi': round(float(data['weight']) / (float(data['height'])/100)**2, 1)
-        }
-        
-        # Initialize memory manager synchronously
-        try:
-            print(f"Initializing memory manager for user {data['name']}...")
-            trainer.memory_manager = FitnessMemoryManager(trainer.client, trainer.user_profile)
-            memory_initialized = True
-            print("Memory manager initialized successfully")
-        except Exception as e:
-            print(f"Error initializing memory manager: {str(e)}")
-            print(f"Error type: {type(e).__name__}")
-            import traceback
-            print(f"Traceback: {traceback.format_exc()}")
-            memory_initialized = False
-        
-        return jsonify({
-            'success': True,
-            'profile': trainer.user_profile,
-            'memory_initialized': memory_initialized,
-            'message': 'Profile created' + (' and memory initialized' if memory_initialized else '. Memory initialization failed.'),
-            'error': str(e) if not memory_initialized else None
-        })
-        
-    except ValueError as e:
-        return jsonify({
-            'success': False,
-            'error': f'Invalid data format: {str(e)}'
-        }), 400
+                "status": "error",
+                "message": "No profile exists"
+            }), 404
+            
+        elif request.method == 'OPTIONS':
+            print("\nProcessing OPTIONS request")
+            response = jsonify({"status": "ok"})
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+            return response
+            
     except Exception as e:
-        print(f"Error in create_profile: {e}")
+        print(f"\nError occurred: {str(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         return jsonify({
-            'success': False,
-            'error': 'Internal server error'
+            "status": "error",
+            "message": str(e)
         }), 500
 
 @fitness_bp.route('/profile/status', methods=['GET'])
 def profile_status():
     """Check profile and memory initialization status"""
     try:
-        if 'fitness_session_id' not in session:
-            return jsonify({'success': False, 'error': 'No active session'}), 400
-        
-        trainer = get_or_create_trainer(session['fitness_session_id'])
+        print("\n=== Profile Status Check ===")
+        if not trainer:
+            print("No trainer instance found")
+            return jsonify({
+                'success': False,
+                'error': 'No active trainer session'
+            }), 400
         
         if not hasattr(trainer, 'user_profile'):
+            print("No user profile found")
             return jsonify({
                 'success': False,
                 'error': 'Profile not created'
@@ -156,8 +228,11 @@ def profile_status():
         # Try to initialize memory if not already initialized
         if not hasattr(trainer, 'memory_manager'):
             try:
-                print(f"Attempting to initialize memory manager for user {trainer.user_profile.get('name', 'unknown')}...")
+                print(f"Initializing memory manager for user {trainer.user_profile.get('name', 'unknown')}...")
                 trainer.memory_manager = FitnessMemoryManager(trainer.client, trainer.user_profile)
+                # Verify memory manager is properly initialized
+                if not trainer.memory_manager or not hasattr(trainer.memory_manager, 'collection'):
+                    raise Exception("Memory manager initialization incomplete")
                 memory_initialized = True
                 print("Memory manager initialized successfully")
             except Exception as e:
@@ -168,17 +243,33 @@ def profile_status():
                 memory_initialized = False
                 error_message = str(e)
         else:
-            memory_initialized = True
-            error_message = None
+            # Verify memory manager is still valid
+            try:
+                if not trainer.memory_manager or not hasattr(trainer.memory_manager, 'collection'):
+                    raise Exception("Memory manager not properly initialized")
+                memory_initialized = True
+                error_message = None
+            except Exception as e:
+                memory_initialized = False
+                error_message = str(e)
         
-        return jsonify({
+        response_data = {
             'success': True,
             'profile': trainer.user_profile,
             'memory_initialized': memory_initialized,
             'error': error_message
-        })
+        }
+        print(f"Sending response: {response_data}")
+        
+        response = jsonify(response_data)
+        response.headers['Content-Type'] = 'application/json'
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
         
     except Exception as e:
+        print(f"Error in profile_status: {str(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -287,24 +378,58 @@ def generate_workout():
 def end_session():
     """End current session"""
     try:
-        if 'fitness_session_id' in session:
-            session_id = session['fitness_session_id']
-            if session_id in active_trainers:
-                # Save session data if needed
-                if request.json and request.json.get('save', False):
-                    active_trainers[session_id].save_session_data()
+        print("\n=== Ending Session ===")
+        if 'fitness_session_id' not in session:
+            return jsonify({
+                'success': False,
+                'error': 'No active session found'
+            }), 400
+            
+        session_id = session['fitness_session_id']
+        print(f"Ending session: {session_id}")
+        
+        if session_id in active_trainers:
+            trainer = active_trainers[session_id]
+            # Save session data if requested
+            should_save = False
+            try:
+                if request.is_json and request.json:
+                    should_save = request.json.get('save', False)
+            except Exception as e:
+                print(f"Warning: Could not parse request JSON: {str(e)}")
+            
+            if should_save:
+                try:
+                    trainer.save_session_data()
+                    print("Session data saved successfully")
+                except Exception as e:
+                    print(f"Warning: Failed to save session data: {str(e)}")
+            
+            # Clean up trainer instance
+            try:
+                if hasattr(trainer, 'memory_manager'):
+                    trainer.memory_manager.clear_session_memory()
                 del active_trainers[session_id]
-            session.pop('fitness_session_id', None)
+                print("Trainer instance cleaned up")
+            except Exception as e:
+                print(f"Warning: Error during trainer cleanup: {str(e)}")
+        
+        # Clear session
+        session.pop('fitness_session_id', None)
+        print("Session cleared")
         
         return jsonify({
             'success': True,
-            'message': 'Session ended'
+            'message': 'Session ended successfully'
         })
         
     except Exception as e:
+        print(f"Error ending session: {str(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': f'Failed to end session: {str(e)}'
         }), 500
 
 @fitness_bp.route('/session/status', methods=['GET'])

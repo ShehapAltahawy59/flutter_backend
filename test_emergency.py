@@ -1,7 +1,7 @@
 import requests
 import json
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import time
 
 class EmergencyAPIClient:
@@ -12,6 +12,14 @@ class EmergencyAPIClient:
             "Content-Type": "application/json",
             "Accept": "application/json"
         })
+        # Add authentication headers
+        self.session.headers.update({
+            "Authorization": "Bearer test_token"  # Replace with actual token if needed
+        })
+        
+        # Test IDs (must match setup_test_data.py)
+        self.test_user_id = "507f1f77bcf86cd799439011"
+        self.test_family_id = "507f1f77bcf86cd799439012"
     
     def _make_request(self, method: str, endpoint: str, payload: Optional[Dict] = None) -> Dict[str, Any]:
         """Helper method to handle all API requests"""
@@ -38,30 +46,35 @@ class EmergencyAPIClient:
     def create_sos_alert(self, location: Dict[str, float], message: str = "") -> Dict[str, Any]:
         """Create a new SOS alert"""
         payload = {
-            "location": location,
-            "message": message
+            "location": {
+                "type": "Point",
+                "coordinates": [location["longitude"], location["latitude"]]  # [longitude, latitude] for GeoJSON
+            },
+            "message": message,
+            "user_id": self.test_user_id,
+            "family_id": self.test_family_id
         }
-        return self._make_request("POST", "/api/emergency/sos", payload)
+        return self._make_request("POST", "/api/emergency", payload)
     
     def acknowledge_sos_alert(self, alert_id: str) -> Dict[str, Any]:
         """Acknowledge an SOS alert"""
-        return self._make_request("POST", f"/api/emergency/sos/{alert_id}/acknowledge")
+        return self._make_request("PUT", f"/api/emergency/resolve/{alert_id}")
     
     def resolve_sos_alert(self, alert_id: str) -> Dict[str, Any]:
         """Resolve an SOS alert"""
-        return self._make_request("POST", f"/api/emergency/sos/{alert_id}/resolve")
+        return self._make_request("PUT", f"/api/emergency/resolve/{alert_id}")
     
     def get_active_alerts(self) -> Dict[str, Any]:
         """Get active SOS alerts"""
-        return self._make_request("GET", "/api/emergency/sos/active")
+        return self._make_request("GET", f"/api/emergency/family/{self.test_family_id}")
     
     def get_alert_history(self) -> Dict[str, Any]:
         """Get SOS alert history"""
-        return self._make_request("GET", "/api/emergency/sos/history")
+        return self._make_request("GET", f"/api/emergency/family/{self.test_family_id}")
 
 def test_emergency_system():
     """Test the emergency system endpoints"""
-    client = EmergencyAPIClient("https://flutter-backend-dcqs.onrender.com")
+    client = EmergencyAPIClient("http://localhost:5000")
     
     print("\n=== Testing Emergency System ===\n")
     
@@ -80,7 +93,10 @@ def test_emergency_system():
         if not sos_response.get('success'):
             raise Exception(f"Failed to create SOS alert: {sos_response.get('error')}")
         
-        alert_id = sos_response.get('alert_id')
+        alert_id = sos_response.get('emergency_id')
+        if not alert_id:
+            raise Exception("No emergency ID returned from create response")
+            
         print(f"SOS Alert created with ID: {alert_id}")
         
         # 2. Get Active Alerts

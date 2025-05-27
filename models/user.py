@@ -48,8 +48,15 @@ class User:
 
     @classmethod
     def find_by_id(cls, user_id):
-        db = DatabaseConnection.get_instance()
-        return db.get_users_collection().find_one({"_id": user_id})
+        try:
+            db = DatabaseConnection.get_instance()
+            # Convert string ID to ObjectId
+            if isinstance(user_id, str):
+                user_id = ObjectId(user_id)
+            return db.get_users_collection().find_one({"_id": user_id})
+        except Exception as e:
+            print(f"Error finding user by ID: {str(e)}")
+            return None
     
     @classmethod
     def create(cls, user_data):

@@ -48,6 +48,32 @@ class Event:
         )
 
     @classmethod
+    def join_event(cls, event_id, user_id):
+        """Add a user to the event's participants list"""
+        db = DatabaseConnection.get_instance()
+        result = db.get_events_collection().update_one(
+            {"_id": ObjectId(event_id)},
+            {
+                "$addToSet": {"participants": ObjectId(user_id)},
+                "$set": {"updated_at": datetime.utcnow()}
+            }
+        )
+        return result.modified_count > 0
+
+    @classmethod
+    def leave_event(cls, event_id, user_id):
+        """Remove a user from the event's participants list"""
+        db = DatabaseConnection.get_instance()
+        result = db.get_events_collection().update_one(
+            {"_id": ObjectId(event_id)},
+            {
+                "$pull": {"participants": ObjectId(user_id)},
+                "$set": {"updated_at": datetime.utcnow()}
+            }
+        )
+        return result.modified_count > 0
+
+    @classmethod
     def delete_event(cls, event_id):
         db = DatabaseConnection.get_instance()
         result = db.get_events_collection().delete_one({"_id": ObjectId(event_id)})

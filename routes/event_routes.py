@@ -54,6 +54,48 @@ def update_event_status(event_id):
     Event.update_event_status(event_id, data['status'])
     return jsonify({"message": "Event status updated"}), 200
 
+@event_bp.route('/<event_id>/join', methods=['POST'])
+def join_event(event_id):
+    try:
+        user_id = request.json.get('user_id')
+        if not user_id:
+            return jsonify({"error": "User ID is required"}), 400
+            
+        result = Event.join_event(event_id, user_id)
+        if not result:
+            return jsonify({"error": "Event not found"}), 404
+            
+        return jsonify({
+            "success": True,
+            "message": "Successfully joined event"
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@event_bp.route('/<event_id>/leave', methods=['POST'])
+def leave_event(event_id):
+    try:
+        user_id = request.json.get('user_id')
+        if not user_id:
+            return jsonify({"error": "User ID is required"}), 400
+            
+        result = Event.leave_event(event_id, user_id)
+        if not result:
+            return jsonify({"error": "Event not found"}), 404
+            
+        return jsonify({
+            "success": True,
+            "message": "Successfully left event"
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
 @event_bp.route('/<event_id>', methods=['DELETE'])
 def delete_event(event_id):
     result = Event.delete_event(event_id)
