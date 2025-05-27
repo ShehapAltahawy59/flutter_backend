@@ -44,47 +44,88 @@ def start_session():
 def create_profile():
     """Create or update user fitness profile"""
     
-    if 'fitness_session_id' not in session:
-        return jsonify({'success': False, 'error': 'No active session'}), 400
-    
-    data = request.json
-    trainer = get_or_create_trainer(session['fitness_session_id'])
-    
-    # Required fields
-    required = ['name', 'age', 'weight', 'height', 'fitness_goal', 'experience']
-    if not all(field in data for field in required):
+    try:
+        if 'fitness_session_id' not in session:
+            return jsonify({'success': False, 'error': 'No active session'}), 400
+        
+        data = request.json
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        # Required fields validation
+        required = ['name', 'age', 'weight', 'height', 'fitness_goal', 'experience']
+        missing = [field for field in required if field not in data]
+        if missing:
+            return jsonify({
+                'success': False,
+                'error': f'Missing required fields: {missing}'
+            }), 400
+        
+        # Get trainer (this might be slow if it involves DB/API calls)
+        trainer = get_or_create_trainer(session['fitness_session_id'])
+        
+        # Set up profile quickly
+        trainer.user_profile = {
+            'name': data['name'],
+            'age': int(data['age']),
+            'weight': float(data['weight']),
+            'height': float(data['height']),
+            'fitness_goal': data['fitness_goal'],
+            'experience': data['experience'],
+            'equipment': data.get('equipment', ''),
+            'limitations': data.get('limitations', ''),
+            'bmi': round(float(data['weight']) / (float(data['height'])/100)**2, 1)
+        }
+        
+        # OPTION 1: Initialize memory manager asynchronously (recommended)
+        # This prevents blocking the response
+        def init_memory_async():
+            try:
+                trainer.memory_manager = FitnessMemoryManager(trainer.client, trainer.user_profile)
+            except Exception as e:
+                print(f"Error initializing memory manager: {e}")
+        
+        # Run in background thread
+        import threading
+        thread = threading.Thread(target=init_memory_async)
+        thread.daemon = True
+        thread.start()
+        
+        # Return immediately
+        return jsonify({
+            'success': True,
+            'profile': trainer.user_profile,
+            'message': 'Profile created. AI trainer is initializing...'
+        })
+        
+        # OPTION 2: Initialize with timeout (alternative approach)
+        # import signal
+        # def timeout_handler(signum, frame):
+        #     raise TimeoutError("Memory manager initialization timed out")
+        # 
+        # signal.signal(signal.SIGALRM, timeout_handler)
+        # signal.alarm(5)  # 5 second timeout
+        # 
+        # try:
+        #     trainer.memory_manager = FitnessMemoryManager(trainer.client, trainer.user_profile)
+        #     signal.alarm(0)  # Cancel timeout
+        # except TimeoutError:
+        #     print("Memory manager initialization timed out - will retry later")
+        # except Exception as e:
+        #     print(f"Error initializing memory manager: {e}")
+        
+    except ValueError as e:
         return jsonify({
             'success': False,
-            'error': f'Missing required fields: {required}'
+            'error': f'Invalid data format: {str(e)}'
         }), 400
-    
-    # Set up profile
-    trainer.user_profile = {
-        'name': data['name'],
-        'age': int(data['age']),
-        'weight': float(data['weight']),
-        'height': float(data['height']),
-        'fitness_goal': data['fitness_goal'],
-        'experience': data['experience'],
-        'equipment': data.get('equipment', ''),
-        'limitations': data.get('limitations', ''),
-        'bmi': round(float(data['weight']) / (float(data['height'])/100)**2, 1)
-    }
-    
-    # Initialize memory system
-    trainer.memory_manager = FitnessMemoryManager(trainer.client, trainer.user_profile)
-    
-    return jsonify({
-        'success': True,
-        'profile': trainer.user_profile
-    })
+    except Exception as e:
+        print(f"Error in create_profile: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
         
-    # except Exception as e:
-    #     return jsonify({
-    #         'success': False,
-    #         'error': str(e)
-    #     }), 500
-
 @fitness_bp.route('/chat', methods=['POST'])
 def chat():
     """Handle chat with fitness AI"""
