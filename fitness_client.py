@@ -77,43 +77,75 @@ class FitnessAPIClient:
     
     def create_profile(self, profile_data: Dict[str, Any]) -> Dict[str, Any] | None:
         """Create user fitness profile"""
-        try:
-            print("\nCreating profile...")
-            headers = {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            }
-            response = requests.post(
-                f"{self.base_url}/api/fitness/profile",
-                json=profile_data,
-                headers=headers
-            )
-            response.raise_for_status()
-            data = response.json()
-            
-            if data.get('status') == 'success':
-                print("Profile created successfully!")
-                print("\nProfile details:")
-                profile = data.get('profile', {})
-                print(f"Name: {profile.get('name')}")
-                print(f"Age: {profile.get('age')}")
-                print(f"Weight: {profile.get('weight')} kg")
-                print(f"Height: {profile.get('height')} cm")
-                print(f"BMI: {profile.get('bmi')}")
-                print(f"Goal: {profile.get('fitness_goal')}")
-                print(f"Experience: {profile.get('experience')}")
-                print(f"Equipment: {profile.get('equipment')}")
-                print(f"Limitations: {profile.get('limitations')}")
-                return profile
-            else:
-                print(f"Failed to create profile: {data.get('message')}")
+        max_retries = 3
+        retry_delay = 2  # seconds
+        
+        for attempt in range(max_retries):
+            try:
+                print(f"\nCreating profile (attempt {attempt + 1}/{max_retries})...")
+                headers = {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+                
+                # Use the session for consistent connection handling
+                response = self.session.post(
+                    f"{self.base_url}/api/fitness/profile",
+                    json=profile_data,
+                    headers=headers,
+                    timeout=(5, 30)  # Increased timeout for model loading
+                )
+                
+                response.raise_for_status()
+                data = response.json()
+                
+                if data.get('status') == 'success':
+                    print("Profile created successfully!")
+                    print("\nProfile details:")
+                    profile = data.get('profile', {})
+                    print(f"Name: {profile.get('name')}")
+                    print(f"Age: {profile.get('age')}")
+                    print(f"Weight: {profile.get('weight')} kg")
+                    print(f"Height: {profile.get('height')} cm")
+                    print(f"BMI: {profile.get('bmi')}")
+                    print(f"Goal: {profile.get('fitness_goal')}")
+                    print(f"Experience: {profile.get('experience')}")
+                    print(f"Equipment: {profile.get('equipment')}")
+                    print(f"Limitations: {profile.get('limitations')}")
+                    return profile
+                else:
+                    print(f"Failed to create profile: {data.get('message')}")
+                    if attempt < max_retries - 1:
+                        print(f"Retrying in {retry_delay} seconds...")
+                        sleep(retry_delay)
+                        retry_delay *= 2  # Exponential backoff
+                        continue
+                    return None
+                    
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 502 and attempt < max_retries - 1:
+                    print(f"Server is still initializing (502 error). Retrying in {retry_delay} seconds...")
+                    sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+                    continue
+                print(f"HTTP Error during API interaction: {str(e)}")
                 return None
-        except requests.exceptions.RequestException as e:
-            print(f"Error during API interaction: {str(e)}")
-            return None
-        except Exception as e:
-            print(f"Unexpected error: {str(e)}")
-            return None
+                
+            except requests.exceptions.RequestException as e:
+                print(f"Error during API interaction: {str(e)}")
+                if attempt < max_retries - 1:
+                    print(f"Retrying in {retry_delay} seconds...")
+                    sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+                    continue
+                return None
+                
+            except Exception as e:
+                print(f"Unexpected error: {str(e)}")
+                return None
+        
+        print("Failed to create profile after all retries")
+        return None
     
     def get_profile(self) -> Dict[str, Any]:
         """Get current user profile"""
@@ -244,7 +276,7 @@ class FitnessAPIClient:
 
 # Example Usage
 if __name__ == "__main__":
-    client = FitnessAPIClient("http://localhost:5000")
+    client = FitnessAPIClient("http://flutter-backend-dcqs.onrender.com")
     
     try:
         # 1. Start a session
