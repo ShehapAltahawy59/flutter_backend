@@ -32,7 +32,7 @@ def create_app():
     CORS(app, resources={
         r"/api/*": {
             "origins": API_CONFIG['cors_origins'],
-            "methods": SECURITY_CONFIG['cors_methods'],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": SECURITY_CONFIG['cors_headers']
         }
     })
@@ -44,12 +44,21 @@ def create_app():
     Session(app)
     
     # Initialize database connection
-    DatabaseConnection.get_instance()
+    try:
+        db = DatabaseConnection.get_instance()
+        logger.info("Database connection initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize database connection: {str(e)}")
+        raise
     
     # Initialize model loader and pre-download models
-    logger.info("Initializing model loader and pre-downloading models...")
-    model_loader = ModelLoader()
-    logger.info("Model initialization complete")
+    try:
+        logger.info("Initializing model loader and pre-downloading models...")
+        model_loader = ModelLoader()
+        logger.info("Model initialization complete")
+    except Exception as e:
+        logger.error(f"Failed to initialize model loader: {str(e)}")
+        # Don't raise here, as model loading is not critical for basic functionality
     
     # Register blueprints
     app.register_blueprint(workout_bp)
@@ -62,21 +71,45 @@ def create_app():
     # Health check endpoint
     @app.route('/health', methods=['GET'])
     def health_check():
-        return jsonify({
-            "status": "healthy",
-            "environment": os.getenv('FLASK_ENV', 'development'),
-            "base_url": API_CONFIG['base_url']
-        }), 200
+        try:
+            # Test database connection
+            db = DatabaseConnection.get_instance()
+            db.get_db().command('ping')
+            return jsonify({
+                "status": "healthy",
+                "environment": os.getenv('FLASK_ENV', 'development'),
+                "base_url": API_CONFIG['base_url'],
+                "database": "connected"
+            }), 200
+        except Exception as e:
+            logger.error(f"Health check failed: {str(e)}")
+            return jsonify({
+                "status": "unhealthy",
+                "error": str(e),
+                "environment": os.getenv('FLASK_ENV', 'development')
+            }), 500
     
     # API health check endpoint
     @app.route('/api/health', methods=['GET'])
     def api_health_check():
-        return jsonify({
-            "status": "healthy",
-            "version": "2",
-            "environment": os.getenv('FLASK_ENV', 'development'),
-            "base_url": API_CONFIG['base_url']
-        }), 200
+        try:
+            # Test database connection
+            db = DatabaseConnection.get_instance()
+            db.get_db().command('ping')
+            return jsonify({
+                "status": "healthy",
+                "version": "2",
+                "environment": os.getenv('FLASK_ENV', 'development'),
+                "base_url": API_CONFIG['base_url'],
+                "database": "connected"
+            }), 200
+        except Exception as e:
+            logger.error(f"API health check failed: {str(e)}")
+            return jsonify({
+                "status": "unhealthy",
+                "error": str(e),
+                "environment": os.getenv('FLASK_ENV', 'development')
+            }), 500
     
     return app
 

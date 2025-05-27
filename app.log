@@ -1627,3 +1627,76 @@ bson.errors.InvalidId: 'test_user_id' is not a valid ObjectId, it must be a 12-b
 2025-05-27 22:31:57,343 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 22:31:57] "DELETE /api/users/68361182188e3fd04aa6470a HTTP/1.1" 200 -
 2025-05-27 22:31:59,490 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 22:31:59] "[35m[1mPOST /api/users/ HTTP/1.1[0m" 201 -
 2025-05-27 22:32:01,569 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 22:32:01] "GET /api/users/6836132f069cae6c651ba492 HTTP/1.1" 200 -
+2025-05-27 23:07:21,635 - app - INFO - Initializing model loader and pre-downloading models...
+2025-05-27 23:07:21,635 - utils.model_loader - INFO - Initializing ModelLoader...
+2025-05-27 23:07:22,007 - utils.model_loader - INFO - Pre-downloading ChromaDB embedding model...
+2025-05-27 23:07:22,008 - utils.model_loader - INFO - Downloading essential model files for sentence-transformers/all-MiniLM-L6-v2
+2025-05-27 23:07:23,757 - utils.model_loader - INFO - Essential model files download complete
+2025-05-27 23:07:23,757 - utils.model_loader - INFO - ModelLoader initialization complete
+2025-05-27 23:07:23,758 - app - INFO - Model initialization complete
+2025-05-27 23:07:24,026 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-05-27 23:07:24,026 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-05-27 23:07:24,035 - werkzeug - INFO -  * Restarting with stat
+2025-05-27 23:07:33,036 - app - INFO - Initializing model loader and pre-downloading models...
+2025-05-27 23:07:33,036 - utils.model_loader - INFO - Initializing ModelLoader...
+2025-05-27 23:07:33,330 - utils.model_loader - INFO - Pre-downloading ChromaDB embedding model...
+2025-05-27 23:07:33,332 - utils.model_loader - INFO - Downloading essential model files for sentence-transformers/all-MiniLM-L6-v2
+2025-05-27 23:07:35,597 - utils.model_loader - INFO - Essential model files download complete
+2025-05-27 23:07:35,598 - utils.model_loader - INFO - ModelLoader initialization complete
+2025-05-27 23:07:35,599 - app - INFO - Model initialization complete
+2025-05-27 23:07:35,743 - werkzeug - WARNING -  * Debugger is active!
+2025-05-27 23:07:35,783 - werkzeug - INFO -  * Debugger PIN: 261-926-778
+2025-05-27 23:10:20,710 - werkzeug - INFO -  * Detected change in 'd:\\flutter_backend\\models\\user.py', reloading
+2025-05-27 23:10:22,300 - werkzeug - INFO -  * Restarting with stat
+2025-05-27 23:10:29,690 - app - INFO - Initializing model loader and pre-downloading models...
+2025-05-27 23:10:29,690 - utils.model_loader - INFO - Initializing ModelLoader...
+2025-05-27 23:10:29,951 - utils.model_loader - INFO - Pre-downloading ChromaDB embedding model...
+2025-05-27 23:10:29,951 - utils.model_loader - INFO - Downloading essential model files for sentence-transformers/all-MiniLM-L6-v2
+2025-05-27 23:10:31,214 - utils.model_loader - INFO - Essential model files download complete
+2025-05-27 23:10:31,215 - utils.model_loader - INFO - ModelLoader initialization complete
+2025-05-27 23:10:31,215 - app - INFO - Model initialization complete
+2025-05-27 23:10:31,274 - werkzeug - WARNING -  * Debugger is active!
+2025-05-27 23:10:31,290 - werkzeug - INFO -  * Debugger PIN: 261-926-778
+2025-05-27 23:10:48,779 - werkzeug - INFO -  * Detected change in 'd:\\flutter_backend\\app.py', reloading
+2025-05-27 23:10:49,876 - werkzeug - INFO -  * Restarting with stat
+2025-05-27 23:11:03,188 - app - INFO - Initializing model loader and pre-downloading models...
+2025-05-27 23:11:03,189 - utils.model_loader - INFO - Initializing ModelLoader...
+2025-05-27 23:11:03,420 - utils.model_loader - INFO - Pre-downloading ChromaDB embedding model...
+2025-05-27 23:11:03,420 - utils.model_loader - INFO - Downloading essential model files for sentence-transformers/all-MiniLM-L6-v2
+2025-05-27 23:11:04,137 - utils.model_loader - INFO - Essential model files download complete
+2025-05-27 23:11:04,137 - utils.model_loader - INFO - ModelLoader initialization complete
+2025-05-27 23:11:04,137 - app - INFO - Model initialization complete
+2025-05-27 23:11:04,217 - werkzeug - WARNING -  * Debugger is active!
+2025-05-27 23:11:04,242 - werkzeug - INFO -  * Debugger PIN: 261-926-778
+2025-05-27 23:19:07,541 - werkzeug - INFO -  * Detected change in 'd:\\flutter_backend\\setup_test_data.py', reloading
+2025-05-27 23:19:08,680 - werkzeug - INFO -  * Restarting with stat
+2025-05-27 23:19:15,274 - app - INFO - Initializing model loader and pre-downloading models...
+2025-05-27 23:19:15,274 - utils.model_loader - INFO - Initializing ModelLoader...
+2025-05-27 23:19:15,521 - utils.model_loader - INFO - Pre-downloading ChromaDB embedding model...
+2025-05-27 23:19:15,521 - utils.model_loader - INFO - Downloading essential model files for sentence-transformers/all-MiniLM-L6-v2
+2025-05-27 23:19:16,111 - utils.model_loader - INFO - Essential model files download complete
+2025-05-27 23:19:16,111 - utils.model_loader - INFO - ModelLoader initialization complete
+2025-05-27 23:19:16,112 - app - INFO - Model initialization complete
+2025-05-27 23:19:16,182 - werkzeug - WARNING -  * Debugger is active!
+2025-05-27 23:19:16,201 - werkzeug - INFO -  * Debugger PIN: 261-926-778
+2025-05-27 23:19:27,153 - werkzeug - INFO -  * Detected change in 'd:\\flutter_backend\\setup_test_data.py', reloading
+2025-05-27 23:19:28,087 - werkzeug - INFO -  * Restarting with stat
+2025-05-27 23:19:33,937 - app - INFO - Initializing model loader and pre-downloading models...
+2025-05-27 23:19:33,937 - utils.model_loader - INFO - Initializing ModelLoader...
+2025-05-27 23:19:34,207 - utils.model_loader - INFO - Pre-downloading ChromaDB embedding model...
+2025-05-27 23:19:34,207 - utils.model_loader - INFO - Downloading essential model files for sentence-transformers/all-MiniLM-L6-v2
+2025-05-27 23:19:34,802 - utils.model_loader - INFO - Essential model files download complete
+2025-05-27 23:19:34,803 - utils.model_loader - INFO - ModelLoader initialization complete
+2025-05-27 23:19:34,803 - app - INFO - Model initialization complete
+2025-05-27 23:19:34,852 - werkzeug - WARNING -  * Debugger is active!
+2025-05-27 23:19:34,866 - werkzeug - INFO -  * Debugger PIN: 261-926-778
+2025-05-27 23:21:08,122 - werkzeug - INFO -  * Detected change in 'd:\\flutter_backend\\wsgi.py', reloading
+2025-05-27 23:21:09,392 - werkzeug - INFO -  * Restarting with stat
+2025-05-27 23:21:19,196 - app - INFO - Initializing model loader and pre-downloading models...
+2025-05-27 23:21:19,196 - utils.model_loader - INFO - Initializing ModelLoader...
+2025-05-27 23:21:19,947 - utils.model_loader - INFO - Pre-downloading ChromaDB embedding model...
+2025-05-27 23:21:19,948 - utils.model_loader - INFO - Downloading essential model files for sentence-transformers/all-MiniLM-L6-v2
+2025-05-27 23:21:20,569 - utils.model_loader - INFO - Essential model files download complete
+2025-05-27 23:21:20,569 - utils.model_loader - INFO - ModelLoader initialization complete
+2025-05-27 23:21:20,569 - app - INFO - Model initialization complete
