@@ -53,73 +53,73 @@ def create_app():
 
     # Register blueprints
     app.register_blueprint(workout_bp, url_prefix='/api/workouts')
-    app.register_blueprint(user_bp, url_prefix='/api/users')  # Register user routes
+    app.register_blueprint(user_bp, url_prefix='/api/users')
     app.register_blueprint(event_bp, url_prefix='/api/events')
     app.register_blueprint(emergency_bp, url_prefix='/api/emergency')
     app.register_blueprint(family_bp)
-    app.register_blueprint(fitness_bp, url_prefix='/api/fitness')  # Register fitness trainer routes
+    app.register_blueprint(fitness_bp, url_prefix='/api/fitness')
+
+    @app.route('/')
+    def health_check():
+        return {
+            'status': 'healthy', 
+            'message': 'Workout Planner API is running',
+            'available_services': [
+                'workouts',
+                'users', 
+                'events',
+                'emergency',
+                'family',
+                'fitness-trainer'
+            ],
+            'endpoints': {
+                'workouts': '/api/workouts',
+                'users': '/api/users',
+                'events': '/api/events', 
+                'emergency': '/api/emergency',
+                'family': '/api/family',
+                'fitness_trainer': '/api/fitness'
+            }
+        }
+
+    @app.route('/api/health')
+    def api_health():
+        return jsonify({
+            'status': 'healthy',
+            'services': {
+                'workout_planner': 'active',
+                'user_management': 'active',
+                'event_management': 'active',
+                'emergency_services': 'active',
+                'family_management': 'active',
+                'fitness_trainer_ai': 'active'
+            }
+        })
+
+    # Global error handlers
+    @app.errorhandler(404)
+    def not_found(error):
+        return jsonify({
+            'success': False,
+            'error': 'Endpoint not found',
+            'available_endpoints': [
+                '/api/workouts',
+                '/api/users',
+                '/api/events',
+                '/api/emergency', 
+                '/api/family',
+                '/api/fitness'
+            ]
+        }), 404
+
+    @app.errorhandler(500)
+    def internal_error(error):
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
     
     return app
-
-@app.route('/')
-def health_check():
-    return {
-        'status': 'healthy', 
-        'message': 'Workout Planner API is running',
-        'available_services': [
-            'workouts',
-            'users', 
-            'events',
-            'emergency',
-            'family',
-            'fitness-trainer'
-        ],
-        'endpoints': {
-            'workouts': '/api/workouts',
-            'users': '/api/users',
-            'events': '/api/events', 
-            'emergency': '/api/emergency',
-            'family': '/api/family',
-            'fitness_trainer': '/api/fitness'
-        }
-    }
-
-@app.route('/api/health')
-def api_health():
-    return jsonify({
-        'status': 'healthy',
-        'services': {
-            'workout_planner': 'active',
-            'user_management': 'active',
-            'event_management': 'active',
-            'emergency_services': 'active',
-            'family_management': 'active',
-            'fitness_trainer_ai': 'active'
-        }
-    })
-
-# Global error handlers
-@app.errorhandler(404)
-def not_found(error):
-    return jsonify({
-        'success': False,
-        'error': 'Endpoint not found',
-        'available_endpoints': [
-            '/api/workouts',
-            '/api/users',
-            '/api/events',
-            '/api/emergency', 
-            '/api/family',
-            '/api/fitness'
-        ]
-    }), 404
-
-@app.errorhandler(500)
-def internal_error(error):
-    return jsonify({
-        'success': False,
-        'error': 'Internal server error'
-    }), 500
 
 if __name__ == '__main__':
     # Check for required environment variables for fitness trainer
