@@ -68,7 +68,7 @@ def create_profile():
         'experience': data['experience'],
         'equipment': data.get('equipment', ''),
         'limitations': data.get('limitations', ''),
-        'bmi': round(float(data['weight']) / ((float(data['height'])/100)**2, 1))
+        'bmi': round(float(data['weight']) / (float(data['height'])/100)**2, 1)
     }
     
     # Initialize memory system
