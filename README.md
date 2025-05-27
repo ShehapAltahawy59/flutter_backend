@@ -223,4 +223,35 @@ For deployment on Render:
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Test Files
+
+The project includes two main test files:
+
+1. `run_emergency_test.py`:
+   - This is a diagnostic test that checks if your server is working properly
+   - It tests basic things like:
+     - Can the server start up?
+     - Is your API key working?
+     - Can it handle errors without crashing?
+     - Is the memory system working?
+   - You run it when you want to check if your server is healthy
+
+2. `run_event_test.py`:
+   - This simulates a real user using your fitness app
+   - It tests things like:
+     - Creating a user profile
+     - Having a conversation with the AI trainer
+     - Getting workout recommendations
+     - Updating user information
+   - You run it to make sure all the main features work together
+
+To run either test, just use:
+```bash
+python run_emergency_test.py
+# or
+python run_event_test.py
+```
+
+The emergency test is like a health check, while the event test is like having a real user try out your app. 
