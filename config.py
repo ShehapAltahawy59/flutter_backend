@@ -22,7 +22,7 @@ COLLECTIONS = {
 # API Configuration
 API_CONFIG = {
     'debug': os.getenv('FLASK_DEBUG', 'False').lower() == 'true',
-    'base_url': os.getenv('BASE_URL', 'http://localhost:5000'),  # Add base URL for API endpoints
+    'base_url': os.getenv('BASE_URL', 'https://flutter-backend-dcqs.onrender.com'),  # Use the actual server URL
     'cors_origins': os.getenv('CORS_ORIGINS', '*').split(',')  # Allow multiple origins
 }
 
