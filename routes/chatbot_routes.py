@@ -3,7 +3,7 @@ from datetime import datetime
 import json
 import os
 from typing import Dict, Any
-from models.fitness_trainer import FitnessAITrainer  # Import your FitnessAITrainer class
+from models.fitness_trainer import FitnessAITrainer, FitnessMemoryManager  # Import your FitnessAITrainer class
 
 fitness_bp = Blueprint('fitness', __name__)
 
