@@ -73,13 +73,37 @@ class FitnessAITrainer:
             # Force garbage collection before initialization
             gc.collect()
             
-            self.client = Groq(api_key=api_key)
-            self.user_profile = FitnessAITrainer._profile or {}
-            self.memory_manager = None
-            self.session_start_time = datetime.now()
-            self.loaded_from_save = False
-            self.initialized = True
-            print(f"Debug - Initialized FitnessAITrainer with profile: {self.user_profile}")
+            # Validate API key
+            if not api_key or not isinstance(api_key, str) or len(api_key.strip()) == 0:
+                raise ValueError("Invalid API key provided")
+            
+            try:
+                # Initialize Groq client with API key
+                self.client = Groq(api_key=api_key.strip())
+                
+                # Test the API key with a simple request
+                self.client.chat.completions.create(
+                    messages=[{"role": "user", "content": "test"}],
+                    model="llama3-70b-8192",
+                    max_tokens=5
+                )
+                
+                # If we get here, the API key is valid
+                self.user_profile = FitnessAITrainer._profile or {}
+                self.memory_manager = None
+                self.session_start_time = datetime.now()
+                self.loaded_from_save = False
+                self.initialized = True
+                print(f"Debug - Initialized FitnessAITrainer with profile: {self.user_profile}")
+                
+            except Exception as e:
+                error_msg = str(e)
+                if "invalid_api_key" in error_msg.lower():
+                    raise ValueError("Invalid Groq API key. Please check your API key in the .env file.")
+                elif "authentication" in error_msg.lower():
+                    raise ValueError("Authentication failed. Please check your API key in the .env file.")
+                else:
+                    raise ValueError(f"Failed to initialize Groq client: {error_msg}")
 
     def find_saved_sessions(self) -> List[str]:
         """Find all saved session files"""

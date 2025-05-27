@@ -240,7 +240,7 @@ class FitnessAPIClient:
 
 # Example Usage
 if __name__ == "__main__":
-    client = FitnessAPIClient("http://localhost:5000")
+    client = FitnessAPIClient("https://flutter-backend-dcqs.onrender.com")
     
     try:
         # 1. Start a session

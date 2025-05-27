@@ -54,8 +54,23 @@ def worker_abort(worker):
     worker.alive = False
 
 def worker_exit(server, worker):
-    """Log when worker exits"""
-    server.log.info(f"Worker {worker.pid} exited with code {worker.exit_code}")
+    """Log worker exit"""
+    try:
+        # Get exit code safely for both process and thread workers
+        exit_code = getattr(worker, 'exit_code', None)
+        if exit_code is None:
+            # For thread workers, try to get exit code from process
+            exit_code = getattr(worker, 'process', None)
+            if exit_code is not None:
+                exit_code = getattr(exit_code, 'exitcode', None)
+        
+        # Log the exit with available information
+        if exit_code is not None:
+            server.log.info(f"Worker {worker.pid} exited with code {exit_code}")
+        else:
+            server.log.info(f"Worker {worker.pid} exited")
+    except Exception as e:
+        server.log.error(f"Error in worker exit handler: {str(e)}")
 
 # Memory management
 max_requests = 100  # Reduced to recycle workers more frequently
