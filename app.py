@@ -37,7 +37,7 @@ def create_app():
     })
     
     # Configure session
-    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', '5454545')
+    app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'dev_key_please_change')
     app.config['SESSION_TYPE'] = 'filesystem'
     Session(app)
     
@@ -70,6 +70,14 @@ def create_app():
             "version": "2",
             "environment": ""
         }), 200
+    
+    # Enable CORS
+    @app.after_request
+    def after_request(response):
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        return response
     
     return app
 

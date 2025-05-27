@@ -9,7 +9,7 @@ import re
 from langchain.memory import ConversationSummaryBufferMemory, VectorStoreRetrieverMemory
 from langchain.schema.messages import HumanMessage, AIMessage
 from langchain.vectorstores import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.llms.base import LLM
 from langchain.callbacks.manager import CallbackManagerForLLMRun

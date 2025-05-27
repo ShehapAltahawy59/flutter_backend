@@ -1499,3 +1499,33 @@ bson.errors.InvalidId: 'test_user_id' is not a valid ObjectId, it must be a 12-b
 2025-05-27 19:15:04,447 - __main__ - INFO - Model initialization complete
 2025-05-27 19:15:04,507 - werkzeug - WARNING -  * Debugger is active!
 2025-05-27 19:15:04,528 - werkzeug - INFO -  * Debugger PIN: 261-926-778
+2025-05-27 19:54:12,412 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 19:54:12] "[32mPOST /api/events HTTP/1.1[0m" 308 -
+2025-05-27 19:54:14,983 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 19:54:14] "[35m[1mPOST /api/events/ HTTP/1.1[0m" 201 -
+2025-05-27 19:54:17,143 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 19:54:17] "GET /api/events/6835ee3697b9645479d213cf HTTP/1.1" 200 -
+2025-05-27 19:54:19,295 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 19:54:19] "PUT /api/events/6835ee3697b9645479d213cf HTTP/1.1" 200 -
+2025-05-27 19:54:21,418 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 19:54:21] "POST /api/events/6835ee3697b9645479d213cf/join HTTP/1.1" 200 -
+2025-05-27 19:54:23,501 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 19:54:23] "GET /api/events/family/6835d782f73e91317dc709c3 HTTP/1.1" 200 -
+2025-05-27 19:54:25,617 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 19:54:25] "POST /api/events/6835ee3697b9645479d213cf/leave HTTP/1.1" 200 -
+2025-05-27 19:54:37,259 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 19:54:37] "DELETE /api/users/6835d74a15840fb4f8ee7245 HTTP/1.1" 200 -
+2025-05-27 19:54:39,296 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 19:54:39] "[33mDELETE /api/users/email/test@example.com HTTP/1.1[0m" 404 -
+2025-05-27 19:54:41,479 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 19:54:41] "[35m[1mPOST /api/users/ HTTP/1.1[0m" 201 -
+2025-05-27 19:54:43,748 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 19:54:43] "GET /api/users/6835ee5197b9645479d213d0 HTTP/1.1" 200 -
+2025-05-27 19:54:45,853 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 19:54:45] "[32mPOST /api/emergency HTTP/1.1[0m" 308 -
+2025-05-27 19:54:48,318 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 19:54:48] "[35m[1mPOST /api/emergency/ HTTP/1.1[0m" 201 -
+2025-05-27 19:54:50,414 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 19:54:50] "GET /api/emergency/family/507f1f77bcf86cd799439012 HTTP/1.1" 200 -
+2025-05-27 19:54:52,546 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 19:54:52] "PUT /api/emergency/resolve/6835ee5797b9645479d213d1 HTTP/1.1" 200 -
+2025-05-27 19:54:54,662 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 19:54:54] "GET /api/emergency/family/507f1f77bcf86cd799439012 HTTP/1.1" 200 -
+2025-05-27 19:54:56,781 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 19:54:56] "PUT /api/emergency/resolve/6835ee5797b9645479d213d1 HTTP/1.1" 200 -
+2025-05-27 19:54:58,875 - werkzeug - INFO - 127.0.0.1 - - [27/May/2025 19:54:58] "GET /api/emergency/family/507f1f77bcf86cd799439012 HTTP/1.1" 200 -
+2025-05-27 20:25:09,585 - werkzeug - INFO -  * Detected change in 'd:\\flutter_backend\\models\\fitness_trainer.py', reloading
+2025-05-27 20:25:14,543 - werkzeug - INFO -  * Restarting with stat
+2025-05-27 20:25:36,824 - __main__ - INFO - Initializing model loader and pre-downloading models...
+2025-05-27 20:25:36,826 - utils.model_loader - INFO - Initializing ModelLoader...
+2025-05-27 20:25:37,436 - utils.model_loader - INFO - Pre-downloading ChromaDB embedding model...
+2025-05-27 20:25:37,436 - utils.model_loader - INFO - Downloading essential model files for sentence-transformers/all-MiniLM-L6-v2
+2025-05-27 20:25:38,320 - utils.model_loader - INFO - Essential model files download complete
+2025-05-27 20:25:38,320 - utils.model_loader - INFO - ModelLoader initialization complete
+2025-05-27 20:25:38,321 - __main__ - INFO - Model initialization complete
+2025-05-27 20:25:38,484 - werkzeug - WARNING -  * Debugger is active!
+2025-05-27 20:25:38,514 - werkzeug - INFO -  * Debugger PIN: 261-926-778
+2025-05-27 20:26:13,276 - werkzeug - INFO -  * Detected change in 'd:\\flutter_backend\\app.py', reloading
