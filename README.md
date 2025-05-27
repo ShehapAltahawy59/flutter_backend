@@ -136,17 +136,7 @@ For deployment on Render:
 4. Set build command: `pip install -r requirements.txt`
 5. Set start command: `gunicorn -c gunicorn.conf.py app:app`
 
-## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Emergency System Check
 
@@ -192,7 +182,7 @@ Make sure your MongoDB connection is working and your server is running before r
 
 To verify that your fitness client is working properly, run:
 ```bash
-python -m pytest tests/test_fitness_client.py
+python fitness_client.py
 ```
 
 This test will:
