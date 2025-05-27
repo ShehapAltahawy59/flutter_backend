@@ -3,7 +3,7 @@ services:
     name: workout-planner
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    startCommand: gunicorn --timeout 120 app:app
     envVars:
       - key: MONGODB_URI
         fromDatabase:
