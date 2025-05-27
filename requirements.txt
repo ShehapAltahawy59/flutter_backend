@@ -1,12 +1,12 @@
-flask==2.3.3
+flask
 flask-cors
-pymongo==4.5.0
-python-dotenv==1.0.0
+pymongo
+python-dotenv
 gunicorn
 flask_session
 groq
 chromadb
-langchain==0.0.267
+langchain
 dotenv
 langchain-community
 sentence-transformers
