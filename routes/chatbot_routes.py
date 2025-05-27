@@ -208,46 +208,24 @@ def create_profile():
 
 @fitness_bp.route('/profile/status', methods=['GET'])
 def profile_status():
-    """Check profile and memory initialization status"""
+    """Check profile status and memory initialization"""
     try:
         print("\n=== Profile Status Check ===")
-        if not trainer:
-            print("No trainer instance found")
+        if 'fitness_session_id' not in session:
             return jsonify({
                 'success': False,
-                'error': 'No active trainer session'
+                'error': 'No active session'
             }), 400
+            
+        trainer = get_or_create_trainer(session['fitness_session_id'])
         
-        if not hasattr(trainer, 'user_profile'):
-            print("No user profile found")
-            return jsonify({
-                'success': False,
-                'error': 'Profile not created'
-            }), 404
-        
-        # Try to initialize memory if not already initialized
-        if not hasattr(trainer, 'memory_manager') or trainer.memory_manager is None:
+        # Check if memory manager exists
+        if not hasattr(trainer, 'memory_manager'):
+            # Try to initialize memory manager if it doesn't exist
             try:
-                print(f"Initializing memory manager for user {trainer.user_profile.get('name', 'unknown')}...")
-                print(f"User profile data: {trainer.user_profile}")
-                
-                # Ensure we have a valid client
-                if not hasattr(trainer, 'client') or trainer.client is None:
-                    raise ValueError("Groq client not initialized")
-                
-                # Initialize memory manager with detailed error handling
-                try:
-                    trainer.memory_manager = FitnessMemoryManager(trainer.client, trainer.user_profile)
-                    print("Memory manager initialized successfully")
-                    memory_initialized = True
-                    error_message = None
-                except Exception as e:
-                    print(f"Error during memory manager initialization: {str(e)}")
-                    print(f"Error type: {type(e).__name__}")
-                    import traceback
-                    print(f"Traceback: {traceback.format_exc()}")
-                    memory_initialized = False
-                    error_message = f"Memory initialization failed: {str(e)}"
+                trainer.memory_manager = FitnessMemoryManager(trainer.client, trainer.user_profile)
+                memory_initialized = trainer.memory_manager.is_initialized()
+                error_message = None if memory_initialized else "Memory manager initialization failed"
             except Exception as e:
                 print(f"Error in memory initialization process: {str(e)}")
                 print(f"Error type: {type(e).__name__}")
@@ -258,7 +236,7 @@ def profile_status():
         else:
             # Verify memory manager is still valid
             try:
-                if not trainer.memory_manager or not hasattr(trainer.memory_manager, 'vector_store'):
+                if not trainer.memory_manager.is_initialized():
                     raise Exception("Memory manager not properly initialized")
                 memory_initialized = True
                 error_message = None
@@ -278,7 +256,7 @@ def profile_status():
             'debug_info': {
                 'has_memory_manager': hasattr(trainer, 'memory_manager'),
                 'has_client': hasattr(trainer, 'client'),
-                'has_vector_store': hasattr(trainer.memory_manager, 'vector_store') if hasattr(trainer, 'memory_manager') else False
+                'is_initialized': trainer.memory_manager.is_initialized() if hasattr(trainer, 'memory_manager') else False
             }
         }
         print(f"Sending response: {response_data}")

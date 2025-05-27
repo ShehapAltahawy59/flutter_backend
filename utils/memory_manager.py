@@ -18,6 +18,7 @@ class FitnessMemoryManager:
         
         self.client = client
         self.user_profile = user_profile
+        self.initialized = False
         
         try:
             # Create memory storage directory
@@ -39,16 +40,27 @@ class FitnessMemoryManager:
                     logger.error(f"Error loading memory file: {str(e)}")
                     self.conversation_memory = []
             
+            # Mark as initialized
+            self.initialized = True
             logger.info("Memory manager initialized successfully")
             
         except Exception as e:
             logger.error(f"Error initializing memory manager: {str(e)}")
             logger.error(f"Traceback: {traceback.format_exc()}")
+            self.initialized = False
             self.cleanup()
             raise
     
+    def is_initialized(self):
+        """Check if memory manager is properly initialized"""
+        return self.initialized
+    
     def add_conversation_turn(self, user_message: str, ai_response: str):
         """Add a conversation turn to memory"""
+        if not self.initialized:
+            logger.error("Memory manager not initialized")
+            return
+            
         try:
             logger.info("Adding conversation turn to memory...")
             
@@ -74,6 +86,10 @@ class FitnessMemoryManager:
     
     def get_relevant_context(self, query: str) -> str:
         """Get relevant context from memory for the given query"""
+        if not self.initialized:
+            logger.error("Memory manager not initialized")
+            return ""
+            
         try:
             logger.info(f"Getting relevant context for query: {query}")
             
@@ -97,6 +113,10 @@ class FitnessMemoryManager:
     
     def _save_memory(self):
         """Save memory to file"""
+        if not self.initialized:
+            logger.error("Memory manager not initialized")
+            return
+            
         try:
             with open(self.memory_file, 'w') as f:
                 json.dump(self.conversation_memory, f)
@@ -107,7 +127,8 @@ class FitnessMemoryManager:
         """Clean up resources"""
         try:
             logger.info("Cleaning up resources...")
-            self._save_memory()
+            if self.initialized:
+                self._save_memory()
             gc.collect()
             logger.info("Cleanup completed")
         except Exception as e:
@@ -116,11 +137,19 @@ class FitnessMemoryManager:
     
     def get_memory_summary(self):
         """Get summary of current memory state"""
+        if not self.initialized:
+            logger.error("Memory manager not initialized")
+            return {
+                "error": "Memory manager not initialized",
+                "user_profile": self.user_profile
+            }
+            
         try:
             logger.info("Getting memory summary...")
             summary = {
                 "total_conversation_messages": len(self.conversation_memory),
-                "user_profile": self.user_profile
+                "user_profile": self.user_profile,
+                "initialized": self.initialized
             }
             logger.info(f"Memory summary: {summary}")
             return summary
@@ -129,11 +158,16 @@ class FitnessMemoryManager:
             logger.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "error": str(e),
-                "user_profile": self.user_profile
+                "user_profile": self.user_profile,
+                "initialized": self.initialized
             }
     
     def clear_session_memory(self):
         """Clear session memory"""
+        if not self.initialized:
+            logger.error("Memory manager not initialized")
+            return
+            
         try:
             logger.info("Clearing session memory...")
             self.conversation_memory = []
@@ -146,10 +180,15 @@ class FitnessMemoryManager:
     
     def export_memories(self):
         """Export memories for saving"""
+        if not self.initialized:
+            logger.error("Memory manager not initialized")
+            return {}
+            
         try:
             logger.info("Exporting memories...")
             return {
-                "conversation_messages": self.conversation_memory
+                "conversation_messages": self.conversation_memory,
+                "initialized": self.initialized
             }
         except Exception as e:
             logger.error(f"Error exporting memories: {str(e)}")
