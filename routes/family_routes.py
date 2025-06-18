@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from models.family import Family
-from bson import json_util
+from models.user import User
+from bson import json_util, ObjectId
 import json
 
 family_bp = Blueprint('family', __name__, url_prefix='/api/families')
@@ -17,7 +18,7 @@ def create_family():
         "family_id": str(result.inserted_id)
     }), 201
 
-@family_bp.route('/<family_id>/members', methods=['POST','GET'])
+@family_bp.route('/<family_id>/members', methods=['POST'])
 def add_member(family_id):
     data = request.get_json()
     if not data or 'user_id' not in data:
@@ -47,3 +48,44 @@ def update_settings(family_id):
     
     Family.update_settings(family_id, data['settings'])
     return jsonify({"message": "Settings updated successfully"}), 200
+
+@family_bp.route('/user/<user_id>/members', methods=['GET'])
+def get_user_family_members(user_id):
+    """Get all members of the family that the user belongs to"""
+    try:
+        # First find the family the user belongs to
+        families = Family.find_by_member(user_id)
+        
+        if not families:
+            return jsonify({
+                'success': False,
+                'error': 'User not part of any family'
+            }), 404
+            
+        # Get the first family (assuming user belongs to one family)
+        family = families[0]
+        
+        # Get all members' details
+        members = []
+        for member_id in family.get('members', []):
+            user = User.find_by_id(member_id)
+            if user:
+                members.append({
+                    'user_id': str(user['_id']),
+                    'name': user['name'],
+                    'email': user['email'],
+                    'phone': user['phone']
+                })
+        
+        return jsonify({
+            'success': True,
+            'family_id': str(family['_id']),
+            'family_name': family['name'],
+            'members': members
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500

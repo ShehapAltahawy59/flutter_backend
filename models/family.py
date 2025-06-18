@@ -10,6 +10,12 @@ class Family:
         return db.get_families_collection().insert_one(family_data)
 
     @classmethod
+    def find_by_id(cls, family_id):
+        """Find a family by its ID"""
+        db = DatabaseConnection.get_instance()
+        return db.get_families_collection().find_one({"_id": ObjectId(family_id)})
+
+    @classmethod
     def get_family(cls, family_id):
         db = DatabaseConnection.get_instance()
         return db.get_families_collection().find_one({"_id": ObjectId(family_id)})
@@ -36,11 +42,7 @@ class Family:
             {"_id": ObjectId(family_id)},
             {
                 "$addToSet": {
-                    "members": ObjectId(user_id),
-                    "roles": {
-                        "user_id": ObjectId(user_id),
-                        "role": role
-                    }
+                    "members": str(user_id)  # Store as string to match existing data
                 }
             }
         )
