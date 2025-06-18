@@ -691,3 +691,213 @@ def status():
         'success': True,
         'message': 'Fitness API is running'
     })
+
+@fitness_bp.route('/generate_workout', methods=['POST'])
+def analyze_profile():
+    """Analyze user profile and return AI response"""
+    try:
+        print("\n=== Profile Analysis Endpoint Called ===")
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                "success": False,
+                "error": "No profile data provided"
+            }), 400
+        
+        # Validate required fields
+        required_fields = ['name', 'age', 'weight', 'height', 'fitness_goal', 'experience', 'equipment', 'limitations']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({
+                    "success": False,
+                    "error": f"{field} is required"
+                }), 400
+        
+        # Check for GROQ_API_KEY
+        groq_api_key = os.getenv("GROQ_API_KEY")
+        if not groq_api_key:
+            return jsonify({
+                "success": False,
+                "error": "GROQ_API_KEY not configured"
+            }), 500
+        
+        # Create a temporary trainer for analysis
+        temp_trainer = FitnessAITrainer(api_key=groq_api_key)
+        
+        # Create profile
+        temp_trainer.create_new_profile(data)
+        
+        if not temp_trainer.user_profile:
+            return jsonify({
+                "success": False,
+                "error": "Failed to create profile"
+            }), 500
+        
+        # Generate workout using the same logic as the /workout endpoint
+        workout_type = "general"
+        duration = 30
+        intensity = "moderate"
+        
+        # Generate workout prompt for structured output
+        prompt = f"""Create a {intensity} {workout_type} workout plan for {duration} minutes.
+
+User profile:
+- Goal: {temp_trainer.user_profile['fitness_goal']}
+- Experience: {temp_trainer.user_profile['experience']}
+- Equipment: {temp_trainer.user_profile['equipment']}
+- Limitations: {temp_trainer.user_profile['limitations']}
+
+Please provide a structured workout plan with the following format:
+
+PLAN TITLE: [Workout Plan Title]
+DURATION: [Duration in minutes]
+INTENSITY: [Intensity level]
+
+DAY 1 - [Day Title]:
+• [Exercise 1 with sets and reps]
+• [Exercise 2 with sets and reps]
+• [Exercise 3 with sets and reps]
+• [Exercise 4 with sets and reps]
+• [Exercise 5 with sets and reps]
+
+DAY 2 - [Day Title]:
+• [Exercise 1 with sets and reps]
+• [Exercise 2 with sets and reps]
+• [Exercise 3 with sets and reps]
+• [Exercise 4 with sets and reps]
+
+DAY 3 - [Day Title]:
+• [Exercise 1 with sets and reps]
+• [Exercise 2 with sets and reps]
+• [Exercise 3 with sets and reps]
+• [Exercise 4 with sets and reps]
+
+Include warm-up and cool-down exercises for each day. Provide 3-4 days of workouts based on the user's fitness goal and experience level."""
+        
+        workout_response = temp_trainer.get_ai_response(prompt)
+        
+        # Parse AI response and convert to structured format
+        workout_data = _parse_ai_workout_response(workout_response, intensity, workout_type, duration)
+        
+        # Calculate BMI
+        height_m = data['height'] / 100
+        bmi = data['weight'] / (height_m * height_m)
+        
+        return jsonify({
+            "success": True,
+            "profile": temp_trainer.user_profile,
+            "bmi": round(bmi, 2),
+            "workout": workout_data,
+            "parameters": {
+                'type': workout_type,
+                'duration': duration,
+                'intensity': intensity
+            },
+            "message": "Profile analyzed and workout plan generated successfully"
+        }), 200
+        
+    except Exception as e:
+        print(f"Error in analyze_profile: {str(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+def _parse_ai_workout_response(ai_response: str, intensity: str, workout_type: str, duration: int) -> dict:
+    """Parse AI workout response and convert to structured format"""
+    try:
+        lines = ai_response.split('\n')
+        days = []
+        current_day = None
+        current_exercises = []
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+                
+            # Check if this is a day header
+            if line.upper().startswith('DAY ') and ':' in line:
+                # Save previous day if exists
+                if current_day and current_exercises:
+                    days.append({
+                        "title": current_day,
+                        "exercises": current_exercises
+                    })
+                
+                # Start new day
+                current_day = line.split(':', 1)[0].strip()
+                current_exercises = []
+                
+            # Check if this is an exercise (starts with bullet point or dash)
+            elif line.startswith('•') or line.startswith('-') or line.startswith('*'):
+                exercise = line.lstrip('•-* ').strip()
+                if exercise:
+                    current_exercises.append(exercise)
+                    
+            # Check if this looks like an exercise (contains common exercise keywords)
+            elif any(keyword in line.lower() for keyword in ['sets', 'reps', 'minutes', 'seconds', 'warm-up', 'cool-down', 'push-ups', 'squats', 'lunges', 'plank']):
+                current_exercises.append(line)
+        
+        # Add the last day
+        if current_day and current_exercises:
+            days.append({
+                "title": current_day,
+                "exercises": current_exercises
+            })
+        
+        # If no days were parsed, create a default structure
+        if not days:
+            days = [
+                {
+                    "title": "Day 1 - Full Body Workout",
+                    "exercises": [
+                        "Warm-up: 5 minutes light cardio",
+                        "Squats: 3 sets x 12-15 reps",
+                        "Push-ups: 3 sets x 10-12 reps",
+                        "Dumbbell rows: 3 sets x 12 reps per arm",
+                        "Plank: 3 sets x 30 seconds",
+                        "Cool-down: 5 minutes stretching"
+                    ]
+                }
+            ]
+        
+        return {
+            "plan": {
+                "title": f"{intensity.title()} {workout_type.title()} Workout Plan",
+                "duration": f"{duration} minutes",
+                "intensity": intensity,
+                "details": {
+                    "days": days
+                }
+            }
+        }
+        
+    except Exception as e:
+        print(f"Error parsing AI response: {str(e)}")
+        # Return default structure if parsing fails
+        return {
+            "plan": {
+                "title": f"{intensity.title()} {workout_type.title()} Workout Plan",
+                "duration": f"{duration} minutes",
+                "intensity": intensity,
+                "details": {
+                    "days": [
+                        {
+                            "title": "Day 1 - Full Body Workout",
+                            "exercises": [
+                                "Warm-up: 5 minutes light cardio",
+                                "Squats: 3 sets x 12-15 reps",
+                                "Push-ups: 3 sets x 10-12 reps",
+                                "Dumbbell rows: 3 sets x 12 reps per arm",
+                                "Plank: 3 sets x 30 seconds",
+                                "Cool-down: 5 minutes stretching"
+                            ]
+                        }
+                    ]
+                }
+            }
+        }
