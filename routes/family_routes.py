@@ -17,7 +17,7 @@ def create_family():
         "family_id": str(result.inserted_id)
     }), 201
 
-@family_bp.route('/<family_id>/members', methods=['POST'])
+@family_bp.route('/<family_id>/members', methods=['POST','GET'])
 def add_member(family_id):
     data = request.get_json()
     if not data or 'user_id' not in data:

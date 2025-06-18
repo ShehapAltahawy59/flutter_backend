@@ -15,10 +15,18 @@ class Family:
         return db.get_families_collection().find_one({"_id": ObjectId(family_id)})
 
     @classmethod
+    def find_by_member(cls, user_id):
+        """Find all families where the user is a member"""
+        db = DatabaseConnection.get_instance()
+        return list(db.get_families_collection().find({
+            "members": str(user_id)  # Members are stored as strings
+        }))
+
+    @classmethod
     def get_user_families(cls, user_id):
         db = DatabaseConnection.get_instance()
         return list(db.get_families_collection().find({
-            "members": ObjectId(user_id)
+            "members": str(user_id)  # Members are stored as strings
         }))
 
     @classmethod
