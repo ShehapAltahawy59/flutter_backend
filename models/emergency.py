@@ -9,7 +9,7 @@ load_dotenv()
 class Emergency:
     client = MongoClient(os.getenv("MONGODB_URI"))
     db = client[os.getenv("MONGO_DBNAME", "workout_planner")]
-    collection = db['emergencies']
+    collection = db['sos_alerts']
 
     @classmethod
     def create_emergency(cls, user_id, family_id, location, message=None):

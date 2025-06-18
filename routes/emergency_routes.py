@@ -1,10 +1,29 @@
 from flask import Blueprint, request, jsonify
 from models.emergency import Emergency
 from models.family import Family
+from models.user import User
 from bson import json_util, ObjectId
 import json
+import firebase_admin
+from firebase_admin import credentials, messaging
+
+cred = credentials.Certificate("firebase-adminsdk.json")
+firebase_admin.initialize_app(cred)
 
 emergency_bp = Blueprint('emergency', __name__, url_prefix='/api/emergency')
+
+def send_family_notification(family_id, title, body, data=None):
+    topic = "family_"+str(family_id)
+    message = messaging.Message(
+        notification=messaging.Notification(
+            title=title,
+            body=body,
+        ),
+        topic=topic,
+        data=data or {}
+    )
+    response = messaging.send(message)
+    return response
 
 @emergency_bp.route('/', methods=['POST'])
 def create_emergency():
@@ -14,14 +33,26 @@ def create_emergency():
             return jsonify({"error": "No data provided"}), 400
 
         # Convert string IDs to ObjectId
-        user_id = ObjectId(data['user_id'])
-        family_id = ObjectId(data['family_id'])
+        user_id = str(data['user_id'])
+        family_id = str(data['family_id'])
+
+        # Fetch user from DB to get name
+        user = User.find_by_id(user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        user_name = user.get('name', 'A family member')
 
         result = Emergency.create_emergency(
             user_id,
             family_id,
             data['location'],
-            data.get('message')
+            data.get('message','Emergency situation')
+        )
+        send_family_notification(
+            family_id=family_id,
+            title="SOS Alert!",
+            body=f"SOS alert from {user_name}: {data.get('message', 'Emergency situation')}",
+            data={"type": "sos", "family_id": str(family_id)}
         )
         return jsonify({
             "success": True,
