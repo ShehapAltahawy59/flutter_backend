@@ -39,7 +39,6 @@ def setup_database():
         events.create_index([("type", ASCENDING)])
         events.create_index([("priority", ASCENDING)])
         events.create_index([("status", ASCENDING)])
-        events.create_index([("location", GEOSPHERE)])
         events.create_index([("participants", ASCENDING)])
         print("✓ Events collection setup complete")
         

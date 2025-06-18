@@ -8,6 +8,15 @@ class Event:
         db = DatabaseConnection.get_instance()
         event_data['created_at'] = datetime.utcnow()
         event_data['status'] = 'upcoming'
+        event_data['participants'] = []  # Initialize empty participants list
+        
+        # Handle location data - ensure it's a string
+        if 'location' in event_data and not isinstance(event_data['location'], str):
+            if isinstance(event_data['location'], dict) and 'address' in event_data['location']:
+                event_data['location'] = event_data['location']['address']
+            else:
+                event_data['location'] = str(event_data['location'])
+                    
         return db.get_events_collection().insert_one(event_data)
 
     @classmethod
@@ -26,13 +35,20 @@ class Event:
     def get_family_events(cls, family_id):
         db = DatabaseConnection.get_instance()
         return list(db.get_events_collection().find({
-            "family_id": ObjectId(family_id),
+            "family_id": str(family_id),
             "status": "upcoming"
         }).sort("datetime", 1))
 
     @classmethod
     def update_event(cls, event_id, update_data):
         db = DatabaseConnection.get_instance()
+        # Handle location update - ensure it's a string
+        if 'location' in update_data and not isinstance(update_data['location'], str):
+            if isinstance(update_data['location'], dict) and 'address' in update_data['location']:
+                update_data['location'] = update_data['location']['address']
+            else:
+                update_data['location'] = str(update_data['location'])
+                    
         result = db.get_events_collection().update_one(
             {"_id": ObjectId(event_id)},
             {"$set": update_data}

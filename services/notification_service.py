@@ -3,8 +3,14 @@ from models.user import User
 import requests  # For push notifications
 import os
 from dotenv import load_dotenv
+from flask_socketio import SocketIO, emit
 
 load_dotenv()
+
+socketio = SocketIO()
+
+def init_socketio(app):
+    socketio.init_app(app, cors_allowed_origins="*")
 
 class NotificationService:
     @staticmethod
@@ -47,3 +53,12 @@ class NotificationService:
             "Emergency Alert",
             message
         )
+
+def send_sos_notification(family_id, alert_data):
+    """Send SOS notification to all family members"""
+    # Get all family members
+    family_members = get_users_collection().find({'family_id': family_id})
+    
+    # Send notification to each family member
+    for member in family_members:
+        emit('sos_alert', alert_data, room=str(member['_id']))

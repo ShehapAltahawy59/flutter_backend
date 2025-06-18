@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from models.event import Event
+from models.family import Family
 from bson import json_util, ObjectId
 import json
 
@@ -102,3 +103,36 @@ def delete_event(event_id):
     if not result:
         return jsonify({"error": "Event not found"}), 404
     return jsonify({"message": "Event deleted successfully"}), 200
+
+@event_bp.route('/user/<user_id>/family-events', methods=['GET'])
+def get_user_family_events(user_id):
+    """Get all events in the user's family"""
+    try:
+        # First find the family the user belongs to
+        families = Family.find_by_member(user_id)
+        
+        if not families:
+            return jsonify({
+                'success': False,
+                'error': 'User not part of any family'
+            }), 404
+            
+        # Get the first family (assuming user belongs to one family)
+        family = families[0]
+        family_id = str(family['_id'])
+        
+        # Get all events for this family
+        events = Event.get_family_events(family_id)
+        
+        return jsonify({
+            'success': True,
+            'family_id': family_id,
+            'family_name': family['name'],
+            'events': json.loads(json_util.dumps(events))
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500

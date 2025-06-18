@@ -18,4 +18,4 @@ groq
 chromadb
 langchain-community
 langchain_huggingface
-
+flask-socketio
