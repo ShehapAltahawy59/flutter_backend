@@ -78,3 +78,12 @@ class Workout:
             "total_duration": 0,
             "total_calories": 0
         }
+
+    @classmethod
+    def get_user_fitness_profile(cls, user_id):
+        db = DatabaseConnection.get_instance()
+        # Find the most recent fitness profile for the user
+        return db.get_fitness_data_collection().find_one(
+            {"user_id": ObjectId(user_id)},
+            sort=[("created_at", -1)]
+        )
