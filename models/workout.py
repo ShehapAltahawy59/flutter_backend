@@ -87,3 +87,8 @@ class Workout:
             {"user_id": ObjectId(user_id)},
             sort=[("created_at", -1)]
         )
+    
+    @classmethod
+    def get_user_workouts(cls, user_id):
+        db = DatabaseConnection.get_instance()
+        return list(db.get_fitness_data_collection().find({"user_id": user_id}).sort("created_at", -1))

@@ -5,6 +5,8 @@ import json
 import os
 from typing import Dict, Any
 from models.fitness_trainer import FitnessAITrainer, FitnessMemoryManager  # Import your FitnessAITrainer class
+from models.workout import Workout
+import re
 
 fitness_bp = Blueprint('fitness', __name__,url_prefix='/api/fitness')
 
@@ -582,6 +584,16 @@ def generate_workout():
         
         response = trainer.get_ai_response(prompt)
         
+        # After generating the workout
+        trainer.memory_manager.add_message(
+            role="user",
+            content=f"Requested a workout plan with profile: {data}"
+        )
+        trainer.memory_manager.add_message(
+            role="assistant",
+            content=f"Generated workout plan: {response}"
+        )
+        
         return jsonify({
             'success': True,
             'workout': response,
@@ -692,9 +704,22 @@ def status():
         'message': 'Fitness API is running'
     })
 
+def summarize_workout(workout_data):
+    # Simple summary: day titles and first exercise of each day
+    days = workout_data.get('plan', {}).get('details', {}).get('days', [])
+    summary_lines = []
+    for day in days:
+        title = day.get('title', '')
+        exercises = day.get('exercises', [])
+        if exercises:
+            summary_lines.append(f"{title}: {exercises[0]}")
+        else:
+            summary_lines.append(title)
+    return " | ".join(summary_lines)
+
 @fitness_bp.route('/generate_workout', methods=['POST'])
 def analyze_profile():
-    """Analyze user profile and return AI response"""
+    """Analyze user profile and return AI response using memory based on user_id. Also save and retrieve workouts from fitness_data."""
     try:
         print("\n=== Profile Analysis Endpoint Called ===")
         data = request.get_json()
@@ -706,7 +731,7 @@ def analyze_profile():
             }), 400
         
         # Validate required fields
-        required_fields = ['name', 'age', 'weight', 'height', 'fitness_goal', 'experience', 'equipment', 'limitations']
+        required_fields = ['user_id', 'name', 'age', 'weight', 'height', 'fitness_goal', 'experience', 'equipment', 'limitations']
         for field in required_fields:
             if field not in data:
                 return jsonify({
@@ -722,71 +747,64 @@ def analyze_profile():
                 "error": "GROQ_API_KEY not configured"
             }), 500
         
-        # Create a temporary trainer for analysis
-        temp_trainer = FitnessAITrainer(api_key=groq_api_key)
+        # Use user_id as session_id for memory
+        user_id = str(data['user_id'])
+        trainer = get_or_create_trainer(user_id)
         
-        # Create profile
-        temp_trainer.create_new_profile(data)
+        # Create or update profile in memory
+        trainer.create_new_profile(data)
         
-        if not temp_trainer.user_profile:
+        if not trainer.user_profile:
             return jsonify({
                 "success": False,
                 "error": "Failed to create profile"
             }), 500
         
-        # Generate workout using the same logic as the /workout endpoint
+        # Retrieve previous workouts for the user
+        previous_workouts = Workout.get_user_workouts(user_id)
+        for w in previous_workouts:
+            w['_id'] = str(w['_id'])
+        # Get last 3 summaries
+        summaries = [w.get('summary', '') for w in previous_workouts if w.get('summary')]
+        recent_summaries = summaries[:3]
+        print(f"[DEBUG] Recent workout summaries to include in prompt: {recent_summaries}")
+        
+        # Generate workout using AI and parse response
         workout_type = "general"
         duration = 30
         intensity = "moderate"
-        
-        # Generate workout prompt for structured output
-        prompt = f"""Create a {intensity} {workout_type} workout plan for {duration} minutes.
-
-User profile:
-- Goal: {temp_trainer.user_profile['fitness_goal']}
-- Experience: {temp_trainer.user_profile['experience']}
-- Equipment: {temp_trainer.user_profile['equipment']}
-- Limitations: {temp_trainer.user_profile['limitations']}
-
-Please provide a structured workout plan with the following format:
-
-PLAN TITLE: [Workout Plan Title]
-DURATION: [Duration in minutes]
-INTENSITY: [Intensity level]
-
-DAY 1 - [Day Title]:
-• [Exercise 1 with sets and reps]
-• [Exercise 2 with sets and reps]
-• [Exercise 3 with sets and reps]
-• [Exercise 4 with sets and reps]
-• [Exercise 5 with sets and reps]
-
-DAY 2 - [Day Title]:
-• [Exercise 1 with sets and reps]
-• [Exercise 2 with sets and reps]
-• [Exercise 3 with sets and reps]
-• [Exercise 4 with sets and reps]
-
-DAY 3 - [Day Title]:
-• [Exercise 1 with sets and reps]
-• [Exercise 2 with sets and reps]
-• [Exercise 3 with sets and reps]
-• [Exercise 4 with sets and reps]
-
-Include warm-up and cool-down exercises for each day. Provide 3-4 days of workouts based on the user's fitness goal and experience level."""
-        
-        workout_response = temp_trainer.get_ai_response(prompt)
-        
-        # Parse AI response and convert to structured format
+        prompt = f"""Create a {intensity} {workout_type} workout plan for {duration} minutes.\n\nUser profile:\n- Goal: {trainer.user_profile['fitness_goal']}\n- Experience: {trainer.user_profile['experience']}\n- Equipment: {trainer.user_profile['equipment']}\n- Limitations: {trainer.user_profile['limitations']}\n"""
+        if recent_summaries:
+            prompt += "\nHere are summaries of my recent workouts:\n"
+            for i, s in enumerate(recent_summaries, 1):
+                prompt += f"Workout {i}: {s}\n"
+            prompt += "Please avoid repeating the same exercises and make the new plan progressive.\n"
+            print("[DEBUG] Summaries were included in the prompt.")
+        else:
+            print("[DEBUG] No summaries included in the prompt.")
+        prompt += """\nPlease provide a structured workout plan with the following format:\n\nPLAN TITLE: [Workout Plan Title]\nDURATION: [Duration in minutes]\nINTENSITY: [Intensity level]\n\nDAY 1 - [Day Title]:\n• [Exercise 1 with sets and reps]\n• [Exercise 2 with sets and reps]\n• [Exercise 3 with sets and reps]\n• [Exercise 4 with sets and reps]\n• [Exercise 5 with sets and reps]\n\nDAY 2 - [Day Title]:\n• [Exercise 1 with sets and reps]\n• [Exercise 2 with sets and reps]\n• [Exercise 3 with sets and reps]\n• [Exercise 4 with sets and reps]\n\nDAY 3 - [Day Title]:\n• [Exercise 1 with sets and reps]\n• [Exercise 2 with sets and reps]\n• [Exercise 3 with sets and reps]\n• [Exercise 4 with sets and reps]\n\nInclude warm-up and cool-down exercises for each day. Provide 3-4 days of workouts based on the user's fitness goal and experience level."""
+        print(f"[DEBUG] Final prompt sent to AI:\n{prompt}")
+        workout_response = trainer.get_ai_response(prompt)
+        print(workout_response)
         workout_data = _parse_ai_workout_response(workout_response, intensity, workout_type, duration)
         
         # Calculate BMI
         height_m = data['height'] / 100
         bmi = data['weight'] / (height_m * height_m)
         
+        # Save the generated workout in fitness_data with summary
+        summary = summarize_workout(workout_data)
+        Workout.create_workout({
+            "user_id": user_id,
+            "profile": trainer.user_profile,
+            "workout": workout_data,
+            "summary": summary,
+            "created_at": datetime.utcnow()
+        })
+        
         return jsonify({
             "success": True,
-            "profile": temp_trainer.user_profile,
+            "profile": trainer.user_profile,
             "bmi": round(bmi, 2),
             "workout": workout_data,
             "parameters": {
@@ -794,7 +812,7 @@ Include warm-up and cool-down exercises for each day. Provide 3-4 days of workou
                 'duration': duration,
                 'intensity': intensity
             },
-            "message": "Profile analyzed and workout plan generated successfully"
+            "message": "Profile analyzed and workout plan generated successfully (with memory)"
         }), 200
         
     except Exception as e:
@@ -807,48 +825,44 @@ Include warm-up and cool-down exercises for each day. Provide 3-4 days of workou
         }), 500
 
 def _parse_ai_workout_response(ai_response: str, intensity: str, workout_type: str, duration: int) -> dict:
-    """Parse AI workout response and convert to structured format"""
+    """Parse AI workout response and convert to structured format (robust for markdown and flexible AI output)"""
     try:
         lines = ai_response.split('\n')
         days = []
         current_day = None
         current_exercises = []
-        
+
         for line in lines:
             line = line.strip()
-            if not line:
-                continue
-                
-            # Check if this is a day header
-            if line.upper().startswith('DAY ') and ':' in line:
+            # Remove markdown bold and bullets
+            line = re.sub(r'^\*+\s*', '', line)
+            line = re.sub(r'\*+$', '', line)
+            line = line.strip()
+
+            # Match day headers like "DAY 1 - Upper Body", with or without bold, with or without colon
+            day_match = re.match(r'(DAY\s*\d+\s*-\s*.+)', line, re.IGNORECASE)
+            if day_match:
                 # Save previous day if exists
                 if current_day and current_exercises:
                     days.append({
                         "title": current_day,
                         "exercises": current_exercises
                     })
-                
-                # Start new day
-                current_day = line.split(':', 1)[0].strip()
+                current_day = day_match.group(1)
                 current_exercises = []
-                
-            # Check if this is an exercise (starts with bullet point or dash)
-            elif line.startswith('•') or line.startswith('-') or line.startswith('*'):
-                exercise = line.lstrip('•-* ').strip()
-                if exercise:
-                    current_exercises.append(exercise)
-                    
-            # Check if this looks like an exercise (contains common exercise keywords)
-            elif any(keyword in line.lower() for keyword in ['sets', 'reps', 'minutes', 'seconds', 'warm-up', 'cool-down', 'push-ups', 'squats', 'lunges', 'plank']):
+                continue
+
+            # If line is not empty and not a day header, treat as exercise
+            if line and current_day:
                 current_exercises.append(line)
-        
+
         # Add the last day
         if current_day and current_exercises:
             days.append({
                 "title": current_day,
                 "exercises": current_exercises
             })
-        
+
         # If no days were parsed, create a default structure
         if not days:
             days = [
@@ -864,7 +878,7 @@ def _parse_ai_workout_response(ai_response: str, intensity: str, workout_type: s
                     ]
                 }
             ]
-        
+
         return {
             "plan": {
                 "title": f"{intensity.title()} {workout_type.title()} Workout Plan",
@@ -875,7 +889,7 @@ def _parse_ai_workout_response(ai_response: str, intensity: str, workout_type: s
                 }
             }
         }
-        
+
     except Exception as e:
         print(f"Error parsing AI response: {str(e)}")
         # Return default structure if parsing fails

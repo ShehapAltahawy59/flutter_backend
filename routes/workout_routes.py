@@ -68,3 +68,12 @@ def get_fitness_profile(user_id):
     # Convert ObjectId to string for JSON serialization
     profile['_id'] = str(profile['_id'])
     return jsonify(profile), 200
+
+@workout_bp.route('/user_workouts/<user_id>', methods=['GET'])
+def get_user_workouts(user_id):
+    from models.workout import Workout
+    workouts = Workout.get_user_workouts(user_id)
+    # Convert ObjectId to string for JSON serialization
+    for w in workouts:
+        w['_id'] = str(w['_id'])
+    return jsonify({"success": True, "workouts": workouts}), 200
