@@ -59,10 +59,11 @@ def update_event_status(event_id):
 def join_event(event_id):
     try:
         user_id = request.json.get('user_id')
+        user_name = request.json.get('name')
         if not user_id:
             return jsonify({"error": "User ID is required"}), 400
             
-        result = Event.join_event(event_id, user_id)
+        result = Event.join_event(event_id, user_id,user_name)
         if not result:
             return jsonify({"error": "Event not found"}), 404
             
