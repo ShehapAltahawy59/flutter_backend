@@ -3,20 +3,44 @@ from models.family import Family
 from models.user import User
 from bson import json_util, ObjectId
 import json
+from datetime import datetime
 
 family_bp = Blueprint('family', __name__, url_prefix='/api/families')
 
 @family_bp.route('/', methods=['POST'])
 def create_family():
-    data = request.get_json()
-    if not data or 'name' not in data or 'admin_user_id' not in data:
-        return jsonify({"error": "Name and admin user ID are required"}), 400
-    
-    result = Family.create_family(data['name'], data['admin_user_id'])
-    return jsonify({
-        "message": "Family created successfully",
-        "family_id": str(result.inserted_id)
-    }), 201
+    try:
+        data = request.get_json()
+        if not data or 'name' not in data or 'admin_user_id' not in data:
+            return jsonify({"error": "Name and admin user ID are required"}), 400
+        
+        # Create family data with proper structure
+        family_data = {
+            "name": data['name'],
+            "creator_id": ObjectId(data['admin_user_id']),
+            "members": [{
+                "user_id": ObjectId(data['admin_user_id']),
+                "role": "admin",
+                "joined_at": datetime.utcnow()
+            }]
+        }
+        
+        print(f"[DEBUG] Creating family with data: {family_data}")
+        result = Family.create_family(family_data)
+        print(f"[DEBUG] Family created with ID: {result.inserted_id}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Family created successfully",
+            "family_id": str(result.inserted_id)
+        }), 201
+        
+    except Exception as e:
+        print(f"[DEBUG] Error creating family: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 @family_bp.route('/<family_id>/members', methods=['POST'])
 def add_member(family_id):
@@ -53,8 +77,11 @@ def update_settings(family_id):
 def get_user_family_members(user_id):
     """Get all members of the family that the user belongs to"""
     try:
+        print(f"[DEBUG] Getting family members for user_id: {user_id}")
+        
         # First find the family the user belongs to
         families = Family.find_by_member(user_id)
+        print(f"[DEBUG] Found families: {families}")
         
         if not families:
             return jsonify({
@@ -64,19 +91,27 @@ def get_user_family_members(user_id):
             
         # Get the first family (assuming user belongs to one family)
         family = families[0]
+        print(f"[DEBUG] Selected family: {family}")
+        print(f"[DEBUG] Family members: {family.get('members', [])}")
         
         # Get all members' details
         members = []
-        for member_id in family.get('members', []):
+        for member in family.get('members', []):
+            print(f"[DEBUG] Processing member: {member}")
+            member_id = member['user_id']
             user = User.find_by_id(member_id)
+            print(f"[DEBUG] Found user details: {user}")
             if user:
                 members.append({
                     'user_id': str(user['_id']),
                     'name': user['name'],
                     'email': user['email'],
-                    'phone': user['phone']
+                    'phone': user['phone'],
+                    'role': member['role'],
+                    'joined_at': member['joined_at']
                 })
         
+        print(f"[DEBUG] Final members list: {members}")
         return jsonify({
             'success': True,
             'family_id': str(family['_id']),
@@ -85,6 +120,10 @@ def get_user_family_members(user_id):
         }), 200
         
     except Exception as e:
+        print(f"[DEBUG] Error occurred: {str(e)}")
+        print(f"[DEBUG] Error type: {type(e)}")
+        import traceback
+        print(f"[DEBUG] Traceback: {traceback.format_exc()}")
         return jsonify({
             'success': False,
             'error': str(e)

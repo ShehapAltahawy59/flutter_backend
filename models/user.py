@@ -50,18 +50,37 @@ class User:
     def find_by_id(cls, user_id):
         try:
             db = DatabaseConnection.get_instance()
+            print(f"[DEBUG] Finding user with ID: {user_id}")
             # Convert string ID to ObjectId
             if isinstance(user_id, str):
                 user_id = ObjectId(user_id)
-            return db.get_users_collection().find_one({"_id": user_id})
+            print(f"[DEBUG] Converted user_id to ObjectId: {user_id}")
+            
+            user = db.get_users_collection().find_one({"_id": user_id})
+            print(f"[DEBUG] Found user: {user}")
+            return user
         except Exception as e:
-            print(f"Error finding user by ID: {str(e)}")
+            print(f"[DEBUG] Error finding user by ID: {str(e)}")
+            print(f"[DEBUG] Error type: {type(e)}")
             return None
     
     @classmethod
     def create(cls, user_data):
-        db = DatabaseConnection.get_instance()
-        return db.get_users_collection().insert_one(user_data)
+        try:
+            db = DatabaseConnection.get_instance()
+            print(f"[DEBUG] Creating user with data: {user_data}")
+            
+            # If _id is provided as string, convert to ObjectId
+            if '_id' in user_data and isinstance(user_data['_id'], str):
+                user_data['_id'] = ObjectId(user_data['_id'])
+                print(f"[DEBUG] Converted _id to ObjectId: {user_data['_id']}")
+            
+            result = db.get_users_collection().insert_one(user_data)
+            print(f"[DEBUG] User created with ID: {result.inserted_id}")
+            return result
+        except Exception as e:
+            print(f"[DEBUG] Error creating user: {str(e)}")
+            raise
     
     @classmethod
     def update_fitness_goals(cls, user_id, goals):

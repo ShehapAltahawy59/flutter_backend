@@ -54,11 +54,4 @@ class NotificationService:
             message
         )
 
-def send_sos_notification(family_id, alert_data):
-    """Send SOS notification to all family members"""
-    # Get all family members
-    family_members = get_users_collection().find({'family_id': family_id})
-    
-    # Send notification to each family member
-    for member in family_members:
-        emit('sos_alert', alert_data, room=str(member['_id']))
+

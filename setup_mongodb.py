@@ -61,25 +61,6 @@ def setup_database():
         fitness_data.create_index([("type", ASCENDING)])
         print("✓ Fitness Data collection setup complete")
         
-        # 6. Notifications Collection
-        print("\n6. Setting up Notifications Collection...")
-        notifications = db[COLLECTIONS['notifications']]
-        notifications.create_index([("user_id", ASCENDING)])
-        notifications.create_index([("family_id", ASCENDING)])
-        notifications.create_index([("type", ASCENDING)])
-        notifications.create_index([("created_at", DESCENDING)])
-        notifications.create_index([("read", ASCENDING)])
-        print("✓ Notifications collection setup complete")
-        
-        # 7. Chat History Collection
-        print("\n7. Setting up Chat History Collection...")
-        chat_history = db[COLLECTIONS['chat_history']]
-        chat_history.create_index([("user_id", ASCENDING)])
-        chat_history.create_index([("session_id", ASCENDING)])
-        chat_history.create_index([("timestamp", DESCENDING)])
-        print("✓ Chat History collection setup complete")
-        
-        print("\n=== All Collections and Indexes Setup Complete ===\n")
         
         # Print collection statistics
         print("\nCollection Statistics:")

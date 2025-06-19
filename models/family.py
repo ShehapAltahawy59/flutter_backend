@@ -24,15 +24,26 @@ class Family:
     def find_by_member(cls, user_id):
         """Find all families where the user is a member"""
         db = DatabaseConnection.get_instance()
-        return list(db.get_families_collection().find({
-            "members": str(user_id)  # Members are stored as strings
+        print(f"[DEBUG] Searching for user_id: {user_id}")
+        families = list(db.get_families_collection().find({
+            "members": {
+                "$elemMatch": {
+                    "user_id": ObjectId(user_id)
+                }
+            }
         }))
+        print(f"[DEBUG] Found families: {families}")
+        return families
 
     @classmethod
     def get_user_families(cls, user_id):
         db = DatabaseConnection.get_instance()
         return list(db.get_families_collection().find({
-            "members": str(user_id)  # Members are stored as strings
+            "members": {
+                "$elemMatch": {
+                    "user_id": ObjectId(user_id)
+                }
+            }
         }))
 
     @classmethod
@@ -42,7 +53,11 @@ class Family:
             {"_id": ObjectId(family_id)},
             {
                 "$addToSet": {
-                    "members": str(user_id)  # Store as string to match existing data
+                    "members": {
+                        "user_id": ObjectId(user_id),
+                        "role": role,
+                        "joined_at": datetime.utcnow()
+                    }
                 }
             }
         )
