@@ -1,7 +1,6 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_session import Session
-from routes.workout_routes import workout_bp
 from routes.user_routes import user_bp
 from routes.event_routes import event_bp
 from routes.emergency_routes import emergency_bp
@@ -63,7 +62,6 @@ def create_app():
         # Don't raise here, as model loading is not critical for basic functionality
     
     # Register blueprints
-    app.register_blueprint(workout_bp)
     app.register_blueprint(user_bp)
     app.register_blueprint(event_bp)
     app.register_blueprint(emergency_bp)
